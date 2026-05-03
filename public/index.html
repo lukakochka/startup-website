@@ -53,6 +53,18 @@
       <div class="active-prefs" id="active-prefs" hidden aria-live="polite"></div>
     </section>
 
+    <!-- Vibe selector -->
+    <section class="vibe-section" aria-label="Выбор настроения">
+      <h3 class="vibe-title">Какое настроение?</h3>
+      <div class="vibe-list" role="radiogroup" aria-label="Вайб">
+        <button class="vibe-btn active" data-vibe="Обычный ужин" role="radio" aria-checked="true">🏠 Обычный</button>
+        <button class="vibe-btn" data-vibe="Жду гостей" role="radio" aria-checked="false">🎉 Гости</button>
+        <button class="vibe-btn" data-vibe="Сильное похмелье" role="radio" aria-checked="false">🤕 Похмелье</button>
+        <button class="vibe-btn" data-vibe="Готовлю за 5 минут" role="radio" aria-checked="false">⚡ Фастфуд</button>
+        <button class="vibe-btn" data-vibe="Здоровое питание (Фитнес)" role="radio" aria-checked="false">💪 Фитнес</button>
+      </div>
+    </section>
+
     <!-- Upload -->
     <section class="upload-section" aria-label="Загрузка фото">
       <div class="upload-zone" id="upload-zone" role="button" tabindex="0" aria-label="Загрузить фото холодильника">
@@ -217,6 +229,22 @@
       <span>Профиль</span>
     </button>
   </nav>
+
+  <!-- ── Voice Assistant Overlay ───────────────────────────────────────────── -->
+  <div class="voice-overlay" id="voice-overlay" hidden aria-hidden="true">
+    <button class="voice-overlay__close" id="btn-close-voice" aria-label="Закрыть режим готовки">✕</button>
+    <div class="voice-overlay__content">
+      <div class="voice-pulse" id="voice-pulse" aria-hidden="true">🎤</div>
+      <h2 class="voice-recipe-title" id="voice-recipe-title">Название рецепта</h2>
+      <p class="voice-step-counter" id="voice-step-counter">Шаг 1 из 5</p>
+      <div class="voice-step-text" id="voice-step-text">Текст текущего шага</div>
+    </div>
+    <div class="voice-controls">
+      <button class="btn btn--outline" id="btn-voice-prev">Назад</button>
+      <button class="btn btn--outline" id="btn-voice-repeat">Повторить</button>
+      <button class="btn btn--primary" id="btn-voice-next">Дальше</button>
+    </div>
+  </div>
 
   <div class="overlay" id="overlay" hidden aria-hidden="true"></div>
 

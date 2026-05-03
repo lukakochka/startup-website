@@ -15,63 +15,93 @@ const router = Router();
  *   - dislikes     (string) optional JSON array  e.g. '["кинза"]'
  */
 router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: 'No photo uploaded. Field name must be "photo".' });
-  }
+  if (!req.file) return res.status(400).json({ error: 'Photo is required' });
 
-  const photoPath = req.file.path;
-  const userId = req.user?.id ?? null;
-
-  // Parse dietary preferences from request (client always sends latest)
-  let allergens = [];
-  let dislikes = [];
-  try {
-    allergens = JSON.parse(req.body.allergens || '[]');
-    dislikes  = JSON.parse(req.body.dislikes  || '[]');
-  } catch {
-    // malformed JSON — ignore, use empty arrays
-  }
-
-  // If user is authenticated, also pull their saved preferences from DB
-  // and merge with what the client sent (client state wins for this request)
-  if (userId && !allergens.length && !dislikes.length) {
-    const saved = await prisma.userPreferences.findUnique({ where: { userId } });
-    if (saved) {
-      try {
-        allergens = JSON.parse(saved.allergens);
-        dislikes  = JSON.parse(saved.dislikes);
-      } catch { /* ignore */ }
-    }
-  }
+  const userId = req.user?.id || null;
+  const clientIp = req.ip || req.socket.remoteAddress;
+  const clientAgent = req.headers['user-agent'] || 'Unknown';
 
   try {
-    const promptTemplate = await prisma.promptTemplate.findFirst({ where: { isDefault: true } });
-    if (!promptTemplate) {
-      return res.status(500).json({ error: 'No default prompt found. Run: npm run db:seed' });
+    // 1. Fetch system prompt
+    let promptTemplate = 'Ты — шеф-повар. Отвечай в JSON.';
+    const activePrompt = await prisma.systemPrompt.findFirst({ where: { isActive: true } });
+    if (activePrompt) promptTemplate = activePrompt.content;
+
+    // 2. Resolve preferences (DB + Client inputs)
+    let dbPrefs = null;
+    if (userId) {
+      dbPrefs = await prisma.userPreferences.findUnique({ where: { userId } });
+    }
+    const dbAllergens = dbPrefs ? JSON.parse(dbPrefs.allergens) : [];
+    const dbDislikes = dbPrefs ? JSON.parse(dbPrefs.dislikes) : [];
+
+    const clientAllergens = req.body.allergens ? JSON.parse(req.body.allergens) : [];
+    const clientDislikes = req.body.dislikes ? JSON.parse(req.body.dislikes) : [];
+
+    const finalAllergens = [...new Set([...dbAllergens, ...clientAllergens])];
+    const finalDislikes = [...new Set([...dbDislikes, ...clientDislikes])];
+    
+    const vibe = req.body.vibe || null;
+    
+    // 3. Find expiring ingredients for inventory (if logged in)
+    let expiring = [];
+    if (userId) {
+      const threeDaysAgo = new Date();
+      threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+      const staleItems = await prisma.userInventory.findMany({
+        where: { userId, firstSeenAt: { lt: threeDaysAgo } }
+      });
+      expiring = staleItems.map(item => item.ingredientName);
     }
 
-    const aiResult = await analyzeRefrigeratorPhoto(
-      photoPath,
-      promptTemplate.content,
-      { allergens, dislikes }
-    );
+    // 4. Call AI with new preferences and expiring items
+    const prefsObj = { allergens: finalAllergens, dislikes: finalDislikes, vibe, expiring };
+    const aiResponse = await analyzeRefrigeratorPhoto(req.file.path, promptTemplate, prefsObj);
 
-    const record = await prisma.recipeHistory.create({
+    // 5. Update Inventory (if logged in)
+    if (userId && aiResponse.ingredients && Array.isArray(aiResponse.ingredients)) {
+      const now = new Date();
+      // Execute sequentially to avoid SQLite locking issues with multiple concurrent queries
+      for (const ingredient of aiResponse.ingredients) {
+        const name = ingredient.toLowerCase().trim();
+        await prisma.userInventory.upsert({
+          where: { userId_ingredientName: { userId, ingredientName: name } },
+          update: { lastSeenAt: now },
+          create: { userId, ingredientName: name, firstSeenAt: now, lastSeenAt: now }
+        });
+      }
+      
+      // Update User metrics
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          lastIp: clientIp, 
+          userAgent: clientAgent,
+          totalScans: { increment: 1 }
+        }
+      });
+    }
+
+    // 6. Save History Record (Max Data)
+    await prisma.recipeHistory.create({
       data: {
         userId,
-        photoPath: path.relative(process.cwd(), photoPath),
+        photoPath: req.file.path,
         photoStatus: 'stored',
-        aiResponse: JSON.stringify(aiResult),
-        ingredients: aiResult.ingredients?.join(', ') ?? '',
-        allergens: JSON.stringify(allergens),
-        dislikes:  JSON.stringify(dislikes),
+        vibe,
+        aiResponse: JSON.stringify(aiResponse),
+        ingredients: (aiResponse.ingredients || []).join(', '),
+        allergens: JSON.stringify(finalAllergens),
+        dislikes: JSON.stringify(finalDislikes),
+        clientIp,
+        clientAgent
       },
     });
 
-    res.json({ id: record.id, ...aiResult });
+    res.json(aiResponse);
   } catch (err) {
-    console.error('[analyze] Error:', err.message);
-    res.status(500).json({ error: err.message });
+    console.error('Analyze error:', err);
+    res.status(500).json({ error: 'Failed to analyze photo' });
   }
 });
 

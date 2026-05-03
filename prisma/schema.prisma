@@ -14,10 +14,14 @@ model User {
   avatar      String?
   provider    String?          // "google" | "github" | "apple"
   providerId  String?
+  lastIp      String?          // Max data: track last IP
+  userAgent   String?          // Max data: track device
+  totalScans  Int              @default(0) // Max data: engagement
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   history     RecipeHistory[]
   preferences UserPreferences?
+  inventory   UserInventory[]
 }
 
 /// Stores per-user dietary restrictions used to filter AI recipe output
@@ -30,16 +34,31 @@ model UserPreferences {
   updatedAt DateTime @updatedAt
 }
 
+/// Tracks ingredients over time to detect what's about to expire
+model UserInventory {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ingredientName String   // Normalized name, e.g. "яйца"
+  firstSeenAt    DateTime @default(now()) // When we first saw this batch
+  lastSeenAt     DateTime @default(now()) // When we saw it last
+  
+  @@unique([userId, ingredientName])
+}
+
 model RecipeHistory {
   id          String   @id @default(cuid())
   userId      String?
   user        User?    @relation(fields: [userId], references: [id])
   photoPath   String?                         // path to saved image file
   photoStatus String                           // "stored" | "discarded"
+  vibe        String?                          // The context/mood selected
   aiResponse  String                           // full JSON from GPT-4o
   ingredients String?                          // comma-separated detected ingredients
   allergens   String?                          // snapshot of user allergens at time of request
   dislikes    String?                          // snapshot of user dislikes at time of request
+  clientIp    String?                          // Max data
+  clientAgent String?                          // Max data
   createdAt   DateTime @default(now())
 }
 

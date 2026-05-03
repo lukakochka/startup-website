@@ -436,10 +436,95 @@ body::before {
   color: #fda4af; font-size: 0.85rem;
   animation: slideUp 0.3s var(--ease);
 }
+/* ─── Vibe Selector ────────────────────────────────────────────────────────── */
+.vibe-section {
+  width: 100%; text-align: center; margin-bottom: -10px;
+}
+.vibe-title { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+.vibe-list {
+  display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; justify-content: flex-start;
+  scrollbar-width: none; /* Firefox */
+}
+.vibe-list::-webkit-scrollbar { display: none; }
+.vibe-btn {
+  white-space: nowrap; padding: 8px 16px; border-radius: 100px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  font-size: 0.85rem; font-weight: 500; color: var(--text-secondary);
+  transition: all var(--t); flex-shrink: 0;
+}
+.vibe-btn:hover { background: var(--bg-elevated); color: var(--text-primary); }
+.vibe-btn.active {
+  background: var(--accent-subtle); border-color: var(--accent);
+  color: var(--accent-hover); box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* ─── Missing Ingredients (Shopping List) ────────────────────────────────── */
+.missing-ingredients {
+  margin-top: 10px; padding: 12px; border-radius: var(--radius-md);
+  background: rgba(245,158,11,0.05); border: 1px dashed rgba(245,158,11,0.3);
+}
+.missing-ingredients__title {
+  font-size: 0.8rem; font-weight: 700; color: var(--warning); margin-bottom: 6px;
+  display: flex; align-items: center; gap: 6px;
+}
+.missing-ingredients__list {
+  font-size: 0.82rem; color: var(--text-secondary);
+}
+
+/* ─── Voice Assistant Overlay ────────────────────────────────────────────── */
+.voice-overlay {
+  position: fixed; inset: 0; z-index: 400;
+  background: var(--bg-base); display: flex; flex-direction: column;
+  padding: 24px; opacity: 0; pointer-events: none;
+  transition: opacity var(--t);
+}
+.voice-overlay[aria-hidden="false"] { opacity: 1; pointer-events: all; }
+.voice-overlay__close {
+  align-self: flex-end; width: 44px; height: 44px;
+  border-radius: 50%; background: var(--bg-card); color: var(--text-primary);
+  font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
+}
+.voice-overlay__content {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; max-width: 600px; margin: 0 auto; width: 100%;
+}
+.voice-pulse {
+  font-size: 3rem; margin-bottom: 24px;
+  animation: pulse 2s infinite;
+}
+.voice-pulse.listening {
+  color: var(--danger);
+  animation: pulse-fast 1s infinite;
+}
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+@keyframes pulse-fast {
+  0% { transform: scale(1); opacity: 1; text-shadow: 0 0 0 rgba(244,63,94,0); }
+  50% { transform: scale(1.2); opacity: 1; text-shadow: 0 0 20px rgba(244,63,94,0.6); }
+  100% { transform: scale(1); opacity: 1; text-shadow: 0 0 0 rgba(244,63,94,0); }
+}
+.voice-recipe-title { font-size: 1.2rem; color: var(--text-secondary); margin-bottom: 8px; }
+.voice-step-counter {
+  display: inline-block; padding: 4px 12px; border-radius: 100px;
+  background: var(--accent-subtle); color: var(--accent); font-size: 0.8rem; font-weight: 700;
+  margin-bottom: 24px;
+}
+.voice-step-text {
+  font-size: clamp(1.5rem, 5vw, 2.5rem); font-weight: 800; line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+.voice-controls {
+  display: flex; gap: 12px; justify-content: center; padding-bottom: max(24px, env(safe-area-inset-bottom));
+}
+
 @keyframes slideUp {
   from { opacity: 0; transform: translateX(-50%) translateY(12px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
+
 
 /* ─── Mobile-first responsive ─────────────────────────────────────────────── */
 

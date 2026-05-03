@@ -233,7 +233,111 @@ function resetUpload() {
   $('results-section').hidden = true;
 }
 
+// ─── Voice Assistant State ──────────────────────────────────────────────────
+
+const voiceState = {
+  recipe: null,
+  currentStep: 0,
+  recognition: null,
+  synth: window.speechSynthesis,
+  isListening: false,
+};
+
+function initSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+  const rec = new SpeechRecognition();
+  rec.lang = 'ru-RU';
+  rec.continuous = true;
+  rec.interimResults = false;
+  
+  rec.onresult = (event) => {
+    const last = event.results.length - 1;
+    const command = event.results[last][0].transcript.trim().toLowerCase();
+    
+    if (command.includes('дальше') || command.includes('следующий')) {
+      handleVoiceNext();
+    } else if (command.includes('назад') || command.includes('предыдущий')) {
+      handleVoicePrev();
+    } else if (command.includes('повтори') || command.includes('ещё раз')) {
+      readCurrentStep();
+    }
+  };
+  
+  rec.onstart = () => { voiceState.isListening = true; $('voice-pulse').classList.add('listening'); };
+  rec.onend = () => { 
+    if (voiceState.recipe) { // restart if still cooking
+      try { rec.start(); } catch(e){} 
+    } else {
+      voiceState.isListening = false; $('voice-pulse').classList.remove('listening');
+    }
+  };
+  return rec;
+}
+
+voiceState.recognition = initSpeechRecognition();
+
+function openVoiceMode(recipeIndex) {
+  voiceState.recipe = currentRecipes[recipeIndex];
+  if (!voiceState.recipe || !voiceState.recipe.steps.length) return;
+  voiceState.currentStep = 0;
+  
+  $('voice-recipe-title').textContent = voiceState.recipe.title;
+  $('voice-overlay').setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  
+  if (voiceState.recognition) {
+    try { voiceState.recognition.start(); } catch(e){}
+  }
+  
+  updateVoiceUI();
+  readCurrentStep();
+}
+
+function closeVoiceMode() {
+  voiceState.recipe = null;
+  voiceState.synth.cancel();
+  if (voiceState.recognition) voiceState.recognition.stop();
+  $('voice-overlay').setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
+
+function updateVoiceUI() {
+  $('voice-step-counter').textContent = `Шаг ${voiceState.currentStep + 1} из ${voiceState.recipe.steps.length}`;
+  $('voice-step-text').textContent = voiceState.recipe.steps[voiceState.currentStep];
+}
+
+function readCurrentStep() {
+  voiceState.synth.cancel();
+  const text = voiceState.recipe.steps[voiceState.currentStep];
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'ru-RU';
+  utterance.rate = 0.95;
+  voiceState.synth.speak(utterance);
+}
+
+function handleVoiceNext() {
+  if (voiceState.currentStep < voiceState.recipe.steps.length - 1) {
+    voiceState.currentStep++;
+    updateVoiceUI();
+    readCurrentStep();
+  } else {
+    voiceState.synth.cancel();
+    voiceState.synth.speak(new SpeechSynthesisUtterance('Это был последний шаг. Приятного аппетита!'));
+  }
+}
+
+function handleVoicePrev() {
+  if (voiceState.currentStep > 0) {
+    voiceState.currentStep--;
+    updateVoiceUI();
+    readCurrentStep();
+  }
+}
+
 // ─── Analyze ───────────────────────────────────────────────────────────────────
+
+let currentRecipes = [];
 
 async function runAnalysis() {
   if (!state.file) return;
@@ -241,10 +345,13 @@ async function runAnalysis() {
   $('results-section').hidden = true;
 
   try {
+    const activeVibe = document.querySelector('.vibe-btn.active')?.dataset.vibe || null;
+
     const form = new FormData();
     form.append('photo', state.file);
     form.append('allergens', JSON.stringify(state.prefs.allergens));
     form.append('dislikes', JSON.stringify(state.prefs.dislikes));
+    if (activeVibe) form.append('vibe', activeVibe);
 
     const res = await apiFetch('/api/analyze', { method: 'POST', body: form });
     const data = await res.json();
@@ -272,6 +379,7 @@ function setLoading(on) {
 // ─── Render results ────────────────────────────────────────────────────────────
 
 function renderResults({ ingredients = [], recipes = [] }) {
+  currentRecipes = recipes;
   const chipList = $('ingredients-list');
   chipList.innerHTML = ingredients.length
     ? ingredients.map((i) => `<span class="chip" role="listitem">${escHtml(i)}</span>`).join('')
@@ -287,6 +395,17 @@ function recipeCard(r, idx) {
     .map((s, i) => `<div class="step"><span class="step__num">${i + 1}</span><span>${escHtml(s)}</span></div>`)
     .join('');
   const ingreds = (r.ingredients || []).map(escHtml).join(', ');
+  
+  let missingHtml = '';
+  if (r.missingIngredients && r.missingIngredients.length > 0) {
+    missingHtml = `
+      <div class="missing-ingredients">
+        <div class="missing-ingredients__title">🛒 Нужно докупить:</div>
+        <div class="missing-ingredients__list">${r.missingIngredients.map(escHtml).join(', ')}</div>
+      </div>
+    `;
+  }
+
   return `
     <div class="recipe-card" role="listitem" style="animation-delay:${idx * 0.12}s">
       <div>
@@ -297,7 +416,9 @@ function recipeCard(r, idx) {
         </div>
       </div>
       <div class="recipe-card__ingredients"><strong>Ингредиенты:</strong> ${ingreds}</div>
+      ${missingHtml}
       <div class="recipe-card__steps">${steps}</div>
+      <button class="btn btn--primary btn--sm" style="margin-top:auto" onclick="openVoiceMode(${idx})">👨‍🍳 Готовить (Голос)</button>
     </div>`;
 }
 
@@ -421,7 +542,29 @@ function bindEvents() {
     document.querySelectorAll('.bottom-nav__item').forEach((b) => b.classList.remove('active'));
     $('bnav-home').classList.add('active');
   });
+
+  // Vibe Selector
+  document.querySelectorAll('.vibe-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.vibe-btn').forEach(b => {
+        b.classList.remove('active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('active');
+      btn.setAttribute('aria-checked', 'true');
+    });
+  });
+
+  // Voice Controls
+  $('btn-close-voice')?.addEventListener('click', closeVoiceMode);
+  $('btn-voice-prev')?.addEventListener('click', handleVoicePrev);
+  $('btn-voice-next')?.addEventListener('click', handleVoiceNext);
+  $('btn-voice-repeat')?.addEventListener('click', readCurrentStep);
+
+  // Expose openVoiceMode to global scope for inline onclick handlers in HTML
+  window.openVoiceMode = openVoiceMode;
 }
+
 
 // ─── Init ──────────────────────────────────────────────────────────────────────
 

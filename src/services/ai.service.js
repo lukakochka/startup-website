@@ -23,10 +23,10 @@ function imageToBase64(filePath) {
  * into the base template. Allergens are hard-blocked; dislikes are soft-avoided.
  *
  * @param {string} basePrompt - The default prompt template content
- * @param {{ allergens: string[], dislikes: string[] }} prefs
+ * @param {{ allergens: string[], dislikes: string[], vibe: string|null, expiring: string[] }} prefs
  * @returns {string}
  */
-function buildSystemPrompt(basePrompt, { allergens = [], dislikes = [] } = {}) {
+function buildSystemPrompt(basePrompt, { allergens = [], dislikes = [], vibe = null, expiring = [] } = {}) {
   let prompt = basePrompt.trim();
 
   if (allergens.length > 0) {
@@ -44,6 +44,19 @@ ${allergens.map((a) => `• ${a}`).join('\n')}
 ${dislikes.map((d) => `• ${d}`).join('\n')}`;
   }
 
+  if (vibe) {
+    prompt += `
+
+✨ НАСТРОЕНИЕ/СТИЛЬ: Пользователь выбрал следующий режим: "${vibe}". Рецепты должны СТРОГО соответствовать этому настроению.`;
+  }
+
+  if (expiring && expiring.length > 0) {
+    prompt += `
+
+⏳ СКОРО ИСПОРТЯТСЯ: У пользователя залежались следующие продукты. Постарайся придумать рецепт, чтобы их использовать, пока они не пропали:
+${expiring.map((e) => `• ${e}`).join('\n')}`;
+  }
+
   return prompt;
 }
 
@@ -52,7 +65,7 @@ ${dislikes.map((d) => `• ${d}`).join('\n')}`;
  *
  * @param {string} photoPath - Absolute path to the uploaded image
  * @param {string} basePrompt - System prompt template from DB
- * @param {{ allergens: string[], dislikes: string[] }} preferences - User dietary restrictions
+ * @param {{ allergens: string[], dislikes: string[], vibe: string|null, expiring: string[] }} preferences - User dietary restrictions
  * @returns {Promise<{ ingredients: string[], recipes: object[] }>}
  */
 export async function analyzeRefrigeratorPhoto(photoPath, basePrompt, preferences = {}) {
