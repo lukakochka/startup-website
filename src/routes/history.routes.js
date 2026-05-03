@@ -14,7 +14,8 @@ router.get('/', optionalAuth, async (req, res) => {
   const offset = parseInt(req.query.offset) || 0;
 
   try {
-    const where = {}; // Show everything for now (Creator/Global feed mode)
+    const isAdmin = req.user && (req.user.email === 'lyka212.212@gmail.com'); 
+    const where = isAdmin ? {} : (req.user ? { userId: req.user.id } : { userId: 'anonymous_no_history' });
 
     const [records, total] = await Promise.all([
       prisma.recipeHistory.findMany({
