@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentVibe = 'Обычный ужин';
 
-  // Navigation
+  // --- 1. Navigation & UI ---
   ui.navItems.forEach(item => {
     item.addEventListener('click', () => {
       const target = item.getAttribute('data-view');
@@ -48,6 +48,10 @@ document.addEventListener('DOMContentLoaded', () => {
         v.classList.remove('active');
         if (v.id === `view-${target}`) v.classList.add('active');
       });
+
+      if (target === 'history') {
+        loadHistory();
+      }
     });
   });
 
@@ -193,6 +197,51 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.recipeSheet.classList.remove('active');
     setTimeout(() => ui.modalRecipe.hidden = true, 400);
   });
+
+  async function loadHistory() {
+    const list = document.getElementById('history-list');
+    list.innerHTML = '<div style="text-align:center; padding:50px;"><i class="fa-solid fa-spinner fa-spin"></i> Загружаем...</div>';
+
+    try {
+      const res = await fetch('/api/history');
+      const data = await res.json();
+      
+      if (data.items && data.items.length > 0) {
+        list.innerHTML = '';
+        data.items.forEach(item => {
+          const card = document.createElement('div');
+          card.className = 'recipe-card';
+          // Fix path for web access
+          const photoUrl = item.photoPath ? item.photoPath.replace('public/', '').replace(/\\/g, '/') : '';
+          
+          card.innerHTML = `
+            <div style="position:relative; height:150px;">
+              <img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=500'" />
+              <div style="position:absolute; bottom:0; left:0; right:0; padding:10px; background:linear-gradient(transparent, rgba(0,0,0,0.8)); color:#fff;">
+                <small>${new Date(item.createdAt).toLocaleDateString()}</small>
+              </div>
+            </div>
+            <div class="recipe-content">
+              <h3 class="recipe-title">${item.aiResponse.recipes[0]?.name || 'Анализ фото'}</h3>
+              <p class="recipe-meta">${item.ingredients.substring(0, 50)}...</p>
+            </div>
+          `;
+          
+          card.addEventListener('click', () => {
+            // Show the first recipe from that analysis
+            if (item.aiResponse.recipes[0]) showRecipeDetails(item.aiResponse.recipes[0]);
+          });
+          
+          list.appendChild(card);
+        });
+      } else {
+        list.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:50px;">История пуста. Сделайте первое фото!</p>';
+      }
+    } catch (err) {
+      console.error('History load fail:', err);
+      list.innerHTML = '<p style="text-align:center; color:var(--text-danger);">Не удалось загрузить историю.</p>';
+    }
+  }
 
   ui.btnReset?.addEventListener('click', resetApp);
 
