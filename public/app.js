@@ -164,11 +164,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const card = document.createElement('div');
       card.className = 'recipe-card';
       card.style.cursor = 'pointer';
-      const img = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500';
+      
+      // Dynamic image based on recipe name or search term
+      const searchTerm = r.imageSearchTerm || r.name;
+      const img = `https://source.unsplash.com/featured/500x350/?food,${encodeURIComponent(searchTerm)}`;
+      
       card.innerHTML = `
-        <img src="${img}" class="recipe-img" />
+        <img src="${img}" class="recipe-img" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500'" />
         <div class="recipe-content">
-          <h3 class="recipe-title">${r.name || r.title || 'Вкусное блюдо'}</h3>
+          <h3 class="recipe-title">${r.name || 'Блюдо'}</h3>
           <p class="recipe-meta"><i class="fa-solid fa-clock"></i> ${r.time || '25м'} • ${r.difficulty || 'Легко'}</p>
         </div>
       `;
