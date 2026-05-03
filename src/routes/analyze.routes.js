@@ -22,14 +22,29 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
   const clientAgent = req.headers['user-agent'] || 'Unknown';
 
   try {
-    // 1. Fetch system prompt (Safe version)
-    let promptTemplate = `Ты — шеф-повар Ai-Chef. Проанализируй фото и предложи рецепты в JSON.`;
-    try {
-      const activePrompt = await prisma.systemPrompt.findFirst({ where: { isActive: true } });
-      if (activePrompt) promptTemplate = activePrompt.content;
-    } catch (dbErr) {
-      console.warn('DB not ready, using fallback prompt');
+    // 1. Get System Prompt (Directly from code for 100% reliability)
+    const systemPrompt = `Ты — шеф-повар мишленовского уровня. Твоя задача: давать МАКСИМАЛЬНО ТОЧНЫЕ инструкции.
+
+ТРЕБОВАНИЯ К РЕЦЕПТАМ:
+1. ИНСТРУКЦИИ (steps): Описывай процесс детально. Не просто "нарежьте", а "нарежьте кубиками 1x1 см" или "нашинкуйте тонкой соломкой". Указывай время термической обработки ("обжаривайте 3-5 минут до золотистой корочки") и интенсивность огня.
+2. ФОТО: Для каждого рецепта предложи ключевое слово для поиска идеального фото на английском языке (поле "imageSearchTerm").
+3. ВАЙБЫ: СТРОГО соблюдай выбранный вайб.
+
+ОТВЕЧАЙ ТОЛЬКО В JSON:
+{
+  "ingredients": ["продукт 1", "продукт 2"],
+  "recipes": [
+    {
+      "name": "Название",
+      "time": "Время",
+      "difficulty": "Сложность",
+      "imageSearchTerm": "food dish",
+      "kbju": {"k": 0, "b": 0, "j": 0, "u": 0},
+      "steps": ["Шаг 1: Детально про нарезку", "Шаг 2: Детально про готовку"],
+      "bestTime": "Совет"
     }
+  ]
+}`;
 
     // 2. Resolve preferences (DB + Client inputs)
     let dbPrefs = null;
