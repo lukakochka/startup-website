@@ -73,36 +73,38 @@ export async function analyzeRefrigeratorPhoto(photoPath, basePrompt, preference
   const { base64, mime } = imageToBase64(photoPath);
   const systemPrompt = buildSystemPrompt(basePrompt, preferences);
 
-  const response = await client.path('/chat/completions').post({
-    body: {
-      model: MODEL,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image_url',
-              image_url: { url: `data:${mime};base64,${base64}`, detail: 'high' },
-            },
-            { type: 'text', text: 'Проанализируй содержимое холодильника и предложи рецепты с учётом ограничений.' },
-          ],
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 2048,
-      response_format: { type: 'json_object' },
-    },
-  });
-
-  if (isUnexpected(response)) {
-    throw new Error(`AI API Error: ${JSON.stringify(response.body.error)}`);
-  }
-
-  const content = response.body.choices[0].message.content;
   try {
+    const response = await client.path('/chat/completions').post({
+      body: {
+        model: MODEL,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image_url',
+                image_url: { url: `data:${mime};base64,${base64}` }, // Убрали detail: high для экономии токенов
+              },
+              { type: 'text', text: 'Список продуктов и 3 рецепта с детальной нарезкой в JSON.' },
+            ],
+          },
+        ],
+        temperature: 0.5, // Понизили температуру для более стабильного JSON
+        max_tokens: 1500,
+        response_format: { type: 'json_object' },
+      },
+    });
+
+    if (isUnexpected(response)) {
+      const errorMsg = response.body?.error?.message || 'Unknown AI Error';
+      throw new Error(errorMsg);
+    }
+
+    const content = response.body.choices[0].message.content;
     return JSON.parse(content);
-  } catch {
-    throw new Error('AI returned invalid JSON. Raw: ' + content);
+  } catch (err) {
+    console.error('AI Service Error:', err.message);
+    throw err;
   }
 }
