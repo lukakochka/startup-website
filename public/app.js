@@ -216,7 +216,7 @@ document.addEventListener('DOMContentLoaded', () => {
           
           card.innerHTML = `
             <div style="position:relative; height:150px;">
-              <img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=500'" />
+              <img src="${photoUrl}" style="width:100%; height:100%; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1585568444142-30267a503554?auto=format&fit=crop&q=80&w=500'" />
               <div style="position:absolute; bottom:0; left:0; right:0; padding:10px; background:linear-gradient(transparent, rgba(0,0,0,0.8)); color:#fff;">
                 <small>${new Date(item.createdAt).toLocaleDateString()}</small>
               </div>
@@ -253,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.btnMain.disabled = false;
     ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Сделать фото';
     ui.fileInput.value = '';
-    ui.previewImg.src = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000';
+    ui.previewImg.src = 'https://images.unsplash.com/photo-1571175432291-fe49e757c327?auto=format&fit=crop&q=80&w=1000';
     ui.uploadZone.classList.remove('analyzing-pulse');
   }
 });
