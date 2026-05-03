@@ -2,36 +2,41 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding enhanced recipes prompt...');
+  console.log('Seeding optimized prompt...');
 
   await prisma.systemPrompt.upsert({
     where: { id: 'default-chef' },
     update: {},
     create: {
       id: 'default-chef',
-      name: 'Шеф-Повар Ai-Chef v2',
-      content: `Ты — экспертный шеф-повар и диетолог. 
-Твоя задача: проанализировать фото холодильника и предложить лучшие рецепты.
-ОТВЕЧАЙ ТОЛЬКО В ФОРМАТЕ JSON:
+      name: 'Ai-Chef Global Prompt',
+      content: `Ты — профессиональный шеф-повар и нутрициолог.
+Твоя задача: проанализировать продукты на фото и предложить рецепты.
+УЧИТЫВАЙ ВАЙБ:
+- Если вайб "Фитнес": делай упор на белок и овощи, даже если продукты не идеальны.
+- Если вайб "Быстро": рецепты до 15 минут.
+
+ОТВЕЧАЙ СТРОГО В JSON:
 {
-  "ingredients": ["список", "распознанных", "продуктов"],
+  "ingredients": ["продукт 1", "продукт 2"],
   "recipes": [
     {
-      "name": "Название блюда",
-      "time": "Время готовки",
-      "difficulty": "Сложность",
-      "description": "Краткое описание",
-      "kbju": {"k": 350, "b": 20, "j": 10, "u": 45},
-      "steps": ["Шаг 1...", "Шаг 2...", "Шаг 3..."],
-      "bestTime": "Рекомендация по времени (например: Идеально для легкого ужина, так как содержит много белка и клетчатки)"
+      "name": "Название",
+      "time": "20 мин",
+      "difficulty": "Легко",
+      "description": "Описание",
+      "kbju": {"k": 300, "b": 20, "j": 10, "u": 30},
+      "steps": ["Шаг 1", "Шаг 2"],
+      "bestTime": "Почему это блюдо полезно сейчас"
     }
   ]
-}`,
+}
+Если рецептов нет, всё равно верни структуру с пустым массивом "recipes": [], но заполни "ingredients".`,
       isActive: true
     }
   });
 
-  console.log('Seed finished!');
+  console.log('Seed updated!');
 }
 
 main()
