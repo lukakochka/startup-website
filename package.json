@@ -5,7 +5,8 @@
     "dev": "nodemon server.js",
     "db:push": "prisma db push",
     "db:seed": "node prisma/seed.js",
-    "setup": "prisma db push && node prisma/seed.js"
+    "setup": "prisma db push && node prisma/seed.js",
+    "build": "prisma generate"
   },
   "dependencies": {
     "@azure-rest/ai-inference": "latest",
