@@ -253,7 +253,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.btnMain.disabled = false;
     ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Сделать фото';
     ui.fileInput.value = '';
-    ui.previewImg.src = 'https://images.unsplash.com/photo-1571175432291-fe49e757c327?auto=format&fit=crop&q=80&w=1000';
+    ui.previewImg.src = 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=1000';
+    ui.previewImg.style.backgroundColor = '#f0f4f0';
     ui.uploadZone.classList.remove('analyzing-pulse');
   }
 });
