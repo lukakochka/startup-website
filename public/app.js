@@ -1,5 +1,5 @@
 /**
- * Ai-Chef Smart Logic (v3.0)
+ * Ai-Chef Smart Logic (v3.1)
  * Context-aware Analysis & UI Management
  */
 
@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCloseSettings: document.getElementById('btn-close-settings'),
     btnSaveSettings: document.getElementById('btn-save-settings'),
     modalSettings: document.getElementById('modal-settings'),
+    settingsSheet: document.getElementById('settings-sheet'),
     
     ingredientsList: document.getElementById('ingredients-list'),
     recipesGrid: document.getElementById('recipes-grid')
@@ -58,11 +59,11 @@ document.addEventListener('DOMContentLoaded', () => {
   // Settings Toggle
   ui.btnOpenSettings?.addEventListener('click', () => {
     ui.modalSettings.hidden = false;
-    setTimeout(() => document.getElementById('settings-sheet').classList.add('active'), 10);
+    setTimeout(() => ui.settingsSheet?.classList.add('active'), 10);
   });
   
   const closeSettings = () => {
-    document.getElementById('settings-sheet').classList.remove('active');
+    ui.settingsSheet?.classList.remove('active');
     setTimeout(() => ui.modalSettings.hidden = true, 400);
   };
 
@@ -89,21 +90,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // --- 3. THE MAGIC (AI Analysis) ---
+  // --- 3. Analysis Logic ---
   async function runAI(file) {
     ui.scannerOverlay.hidden = false;
     ui.panelInitial.hidden = true;
     ui.btnMain.disabled = true;
-    ui.btnMain.innerHTML = '<i class="fa-solid fa-brain fa-fade"></i> Шеф придумывает...';
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Шеф думает...';
 
-    // Prepare data
     const formData = new FormData();
     formData.append('photo', file);
     formData.append('vibe', currentVibe);
     
-    // Parse strings to JSON arrays
-    const allergens = ui.inputAllergens.value.split(',').map(s => s.trim()).filter(Boolean);
-    const dislikes = ui.inputDislikes.value.split(',').map(s => s.trim()).filter(Boolean);
+    const allergens = ui.inputAllergens?.value.split(',').map(s => s.trim()).filter(Boolean) || [];
+    const dislikes = ui.inputDislikes?.value.split(',').map(s => s.trim()).filter(Boolean) || [];
     
     formData.append('allergens', JSON.stringify(allergens));
     formData.append('dislikes', JSON.stringify(dislikes));
@@ -120,7 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       renderApp(data);
     } catch (err) {
       console.error(err);
-      alert('Ошибка анализа. Проверьте GITHUB_TOKEN.');
+      alert('Ошибка анализа. Проверьте настройки Render.');
       resetApp();
     }
   }
@@ -129,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.scannerOverlay.hidden = true;
     ui.panelResults.hidden = false;
     ui.btnMain.disabled = false;
-    ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Еще одно фото';
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Новое фото';
 
     // Ingredients
     ui.ingredientsList.innerHTML = '';
@@ -142,13 +141,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Recipes
     ui.recipesGrid.innerHTML = '';
-    // Try to find recipes in different possible fields
-    const recipes = data.recipes || data.dishes || data.ideas || data.suggestions || [];
+    const recipes = data.recipes || data.dishes || data.ideas || [];
     
-    console.log('Found recipes:', recipes);
-
     if (recipes.length === 0) {
-      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">ИИ распознал продукты, но не смог придумать блюда. Попробуйте сменить вайб!</p>';
+      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Блюда не найдены. Попробуйте сменить вайб.</p>';
     }
 
     recipes.forEach(r => {
@@ -159,8 +155,8 @@ document.addEventListener('DOMContentLoaded', () => {
         <img src="${img}" class="recipe-img" />
         <div class="recipe-content">
           <h3 class="recipe-title">${r.name}</h3>
-          <p class="recipe-meta"><i class="fa-solid fa-fire-burner"></i> ${r.time || '20м'} • ${r.difficulty || 'Легко'}</p>
-          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px;">${r.description || 'Вкусное блюдо из ваших продуктов.'}</p>
+          <p class="recipe-meta"><i class="fa-solid fa-clock"></i> ${r.time || '20м'} • ${r.difficulty || 'Легко'}</p>
+          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;">${r.description || ''}</p>
         </div>
       `;
       ui.recipesGrid.appendChild(card);
@@ -180,21 +176,3 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.previewImg.src = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000';
   }
 });
-
-  <!-- Settings Bottom Sheet -->
-  <div class="modal-backdrop" id="modal-settings" hidden>
-    <div class="bottom-sheet" id="settings-sheet">
-      <div class="sheet-handle"></div>
-      <h2 style="margin-bottom: 8px;">Настройки ИИ</h2>
-      <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:24px;">Ваши предпочтения для Шефа</p>
-      
-      <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:6px;">Аллергии (через запятую)</label>
-      <input type="text" id="prefs-allergens" class="pref-input" placeholder="Напр: молоко, арахис" />
-      
-      <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:6px;">Исключить продукты</label>
-      <input type="text" id="prefs-dislikes" class="pref-input" placeholder="Напр: кинза, лук" />
-      
-      <button class="btn-primary" id="btn-save-settings">Сохранить</button>
-      <button id="btn-close-settings" style="background:none; border:none; color:var(--text-muted); width:100%; margin-top:20px; cursor:pointer;">Закрыть</button>
-    </div>
-  </div>
