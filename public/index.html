@@ -48,8 +48,18 @@
         </div>
 
         <div id="panel-results" hidden>
+          <h3 style="margin: 16px 0 8px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-basket-shopping" style="color: var(--accent-green);"></i> В холодильнике:
+          </h3>
           <div class="detected-items" id="ingredients-list"></div>
+          
+          <div style="height: 1px; background: #E0E7E0; margin: 20px 0;"></div>
+
+          <h3 style="margin: 0 0 12px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-utensils" style="color: var(--accent-green);"></i> Рецепты от Шефа:
+          </h3>
           <div class="recipes-grid" id="recipes-grid"></div>
+          
           <button class="btn-primary" id="btn-reset" style="margin-top:20px; background: var(--bg-secondary); color: var(--accent-green); border: 1px solid #E0E7E0;">
             <i class="fa-solid fa-rotate-left"></i> Новое фото
           </button>
