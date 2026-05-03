@@ -1,6 +1,6 @@
 /**
- * Ai-Chef Smart Logic (v3.5) - THE FINAL FIX
- * Focus: Fitness Vibe, Robust KBJU & History
+ * Ai-Chef Smart Logic (v3.6) - DEBUG MODE
+ * Focus: Photo Paths & Click Handlers
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   ui.navItems.forEach(item => {
     item.addEventListener('click', () => {
       const target = item.getAttribute('data-view');
+      console.log('Switching to view:', target);
       ui.navItems.forEach(n => n.classList.remove('active'));
       item.classList.add('active');
       ui.views.forEach(v => {
@@ -105,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const data = await response.json();
       renderApp(data);
     } catch (err) {
-      console.error(err);
+      console.error('AI Run Error:', err);
       resetApp();
     }
   }
@@ -129,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const recipes = data.recipes || data.dishes || data.suggestions || [];
     
     if (recipes.length === 0) {
-      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Ничего не найдено. Попробуйте сменить вайб!</p>';
+      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Ничего не найдено.</p>';
     }
 
     recipes.forEach(r => {
@@ -144,13 +145,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <p class="recipe-meta"><i class="fa-solid fa-clock"></i> ${r.time || '25м'} • ${r.difficulty || 'Легко'}</p>
         </div>
       `;
-      card.addEventListener('click', () => showRecipeDetails(r));
+      card.addEventListener('click', () => {
+        console.log('Recipe clicked:', r.name);
+        showRecipeDetails(r);
+      });
       ui.recipesGrid.appendChild(card);
     });
   }
 
   function showRecipeDetails(r) {
-    // Robust parsing for KBJU
+    console.log('Opening modal for:', r.name);
     const k = r.kbju?.k || r.kbju?.calories || Math.floor(Math.random()*150 + 200);
     const b = r.kbju?.b || r.kbju?.protein || 15;
     const j = r.kbju?.j || r.kbju?.fat || 10;
@@ -173,7 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <div style="text-align:center;"><b style="display:block; font-size:1.1rem;">${u}г</b><small>углев</small></div>
       </div>
       <p style="background:#F1F8E9; color:#2E7D32; padding:12px; border-radius:12px; font-size:0.85rem; margin-bottom:20px; border-left:4px solid var(--accent-green);">
-        <i class="fa-solid fa-circle-info"></i> ${r.bestTime || 'Сбалансированное блюдо для вашего здоровья.'}
+        <i class="fa-solid fa-circle-info"></i> ${r.bestTime || 'Сбалансированное блюдо.'}
       </p>
       <h3 style="margin-bottom:12px;">Инструкция:</h3>
       <div>${stepsHtml}</div>
@@ -198,7 +202,10 @@ document.addEventListener('DOMContentLoaded', () => {
         data.items.forEach(item => {
           const card = document.createElement('div');
           card.className = 'recipe-card';
-          const photoUrl = item.photoPath ? item.photoPath.replace(/\\/g, '/') : '';
+          // Robust path handling
+          let photoUrl = item.photoPath ? item.photoPath.replace(/\\/g, '/') : '';
+          if (photoUrl && !photoUrl.startsWith('/')) photoUrl = '/' + photoUrl;
+          
           card.innerHTML = `
             <img src="${photoUrl}" style="width:100%; height:150px; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500'" />
             <div class="recipe-content">
@@ -214,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         list.innerHTML = '<p style="text-align:center; padding:50px; color:var(--text-muted);">История пуста</p>';
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error('History load fail:', err); }
   }
 
   ui.btnReset?.addEventListener('click', resetApp);
