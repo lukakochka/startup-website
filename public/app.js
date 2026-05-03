@@ -1,6 +1,5 @@
 /**
- * Ai-Chef Smart Logic (v3.1)
- * Context-aware Analysis & UI Management
+ * Ai-Chef Smart Logic (v3.2) - FIXED SCANNER & CLEANUP
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -18,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
     btnMain: document.getElementById('btn-main-action'),
     btnReset: document.getElementById('btn-reset'),
     
-    // Preferences & Viber
     vibeChips: document.querySelectorAll('.vibe-chip'),
     inputAllergens: document.getElementById('prefs-allergens'),
     inputDislikes: document.getElementById('prefs-dislikes'),
@@ -34,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentVibe = 'Обычный ужин';
 
-  // --- 1. Navigation & UI ---
+  // Navigation
   ui.navItems.forEach(item => {
     item.addEventListener('click', () => {
       const target = item.getAttribute('data-view');
@@ -47,7 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Vibe Selector
+  // Vibes
   ui.vibeChips.forEach(chip => {
     chip.addEventListener('click', () => {
       ui.vibeChips.forEach(c => c.classList.remove('active'));
@@ -56,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Settings Toggle
+  // Settings
   ui.btnOpenSettings?.addEventListener('click', () => {
     ui.modalSettings.hidden = false;
     setTimeout(() => ui.settingsSheet?.classList.add('active'), 10);
@@ -66,14 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.settingsSheet?.classList.remove('active');
     setTimeout(() => ui.modalSettings.hidden = true, 400);
   };
-
   ui.btnCloseSettings?.addEventListener('click', closeSettings);
   ui.btnSaveSettings?.addEventListener('click', closeSettings);
   ui.modalSettings?.addEventListener('click', (e) => {
     if (e.target === ui.modalSettings) closeSettings();
   });
 
-  // --- 2. Image Handling ---
+  // Upload & Scan
   ui.uploadZone?.addEventListener('click', () => ui.fileInput.click());
   ui.btnMain?.addEventListener('click', () => ui.fileInput.click());
 
@@ -83,19 +80,19 @@ document.addEventListener('DOMContentLoaded', () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         ui.previewImg.src = event.target.result;
-        ui.previewImg.style.opacity = '1';
+        ui.previewImg.style.opacity = '1'; // Show photo clearly!
+        ui.uploadZone.classList.add('analyzing-pulse');
+        ui.scannerOverlay.hidden = false; // Start scanner animation
         runAI(file);
       };
       reader.readAsDataURL(file);
     }
   });
 
-  // --- 3. Analysis Logic ---
   async function runAI(file) {
-    ui.scannerOverlay.hidden = false;
     ui.panelInitial.hidden = true;
     ui.btnMain.disabled = true;
-    ui.btnMain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Шеф думает...';
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Шеф анализирует...';
 
     const formData = new FormData();
     formData.append('photo', file);
@@ -103,34 +100,28 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const allergens = ui.inputAllergens?.value.split(',').map(s => s.trim()).filter(Boolean) || [];
     const dislikes = ui.inputDislikes?.value.split(',').map(s => s.trim()).filter(Boolean) || [];
-    
     formData.append('allergens', JSON.stringify(allergens));
     formData.append('dislikes', JSON.stringify(dislikes));
 
     try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        body: formData
-      });
-
+      const response = await fetch('/api/analyze', { method: 'POST', body: formData });
       if (!response.ok) throw new Error('API Fail');
-      
       const data = await response.json();
       renderApp(data);
     } catch (err) {
       console.error(err);
-      alert('Ошибка анализа. Проверьте настройки Render.');
+      alert('Ошибка связи с ИИ.');
       resetApp();
     }
   }
 
   function renderApp(data) {
-    ui.scannerOverlay.hidden = true;
+    ui.scannerOverlay.hidden = true; // Stop scanner only here
+    ui.uploadZone.classList.remove('analyzing-pulse');
     ui.panelResults.hidden = false;
     ui.btnMain.disabled = false;
     ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Новое фото';
 
-    // Ingredients
     ui.ingredientsList.innerHTML = '';
     (data.ingredients || []).forEach(name => {
       const chip = document.createElement('div');
@@ -139,12 +130,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ui.ingredientsList.appendChild(chip);
     });
 
-    // Recipes
     ui.recipesGrid.innerHTML = '';
     const recipes = data.recipes || data.dishes || data.ideas || [];
-    
     if (recipes.length === 0) {
-      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Блюда не найдены. Попробуйте сменить вайб.</p>';
+      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">ИИ не нашел рецептов.</p>';
     }
 
     recipes.forEach(r => {
@@ -174,5 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Сделать фото';
     ui.fileInput.value = '';
     ui.previewImg.src = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000';
+    ui.uploadZone.classList.remove('analyzing-pulse');
   }
 });
