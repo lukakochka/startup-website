@@ -10,58 +10,66 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="styles.css" />
   <style>
-    /* Quick fix for views */
     .app-view { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
     .app-view.active { display: flex; }
-    .floating-panel { flex-shrink: 0; min-height: 400px; }
+    
+    /* Vibe Selector Styles */
+    .vibe-row { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 20px; -ms-overflow-style: none; scrollbar-width: none; }
+    .vibe-row::-webkit-scrollbar { display: none; }
+    .vibe-chip { 
+      white-space: nowrap; padding: 8px 16px; background: var(--input-bg); border-radius: 100px; 
+      font-size: 0.85rem; cursor: pointer; transition: 0.2s; border: 1px solid transparent;
+    }
+    .vibe-chip.active { background: var(--accent-neon); color: #000; font-weight: 600; }
+
+    /* Custom Input for Preferences */
+    .pref-input { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--input-bg); background: var(--bg-main); color: #fff; margin-bottom: 12px; font-size: 0.9rem; }
   </style>
 </head>
 <body>
 
   <div class="app-container">
     
-    <!-- Header -->
     <header class="app-header">
       <div class="brand-logo">Ai-Chef</div>
       <div class="header-actions">
-        <button class="icon-btn" id="btn-open-settings">
-          <i class="fa-solid fa-sliders"></i>
-        </button>
+        <button class="icon-btn" id="btn-open-settings"><i class="fa-solid fa-sliders"></i></button>
       </div>
     </header>
 
-    <!-- VIEWS -->
-    
     <!-- 1. HOME VIEW -->
     <main class="app-view active" id="view-home">
-      <section class="scanner-viewport" id="upload-zone" style="cursor: pointer;">
+      <section class="scanner-viewport" id="upload-zone" style="height: 340px;">
         <input type="file" id="file-input" accept="image/*" hidden />
         <div class="scanner-overlay" id="scanner-overlay" hidden><div class="scan-line"></div></div>
-        
-        <div id="upload-preview" style="width:100%; height:100%; background: #111;">
-          <img id="preview-img" src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000" style="width:100%; height:100%; object-fit:cover; opacity: 0.5;" />
-          <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:20px;">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size: 2rem; color: var(--accent-neon); margin-bottom:10px;"></i>
-            <p>Нажми сюда, чтобы загрузить фото</p>
-          </div>
-        </div>
+        <img id="preview-img" src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000" style="width:100%; height:100%; object-fit:cover; opacity: 0.5;" />
       </section>
 
-      <section class="floating-panel">
+      <section class="floating-panel" style="margin-top: -40px; z-index: 5;">
         <div class="panel-handle"></div>
+        
         <div id="panel-initial">
-          <h2 style="margin-bottom: 8px;">Что готовим?</h2>
-          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px;">Загрузи фото продуктов и Шеф подберет идеальные рецепты</p>
-          <button class="btn-primary" id="btn-main-action">
-            <i class="fa-solid fa-camera"></i>
-            Загрузить фото
-          </button>
+          <h2 style="margin-bottom: 4px;">Что готовим?</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">Выберите вайб и загрузите фото</p>
+          
+          <div class="vibe-row" id="vibe-selector">
+            <div class="vibe-chip active" data-vibe="Обычный ужин">🏠 Обычный</div>
+            <div class="vibe-chip" data-vibe="Здоровое питание (Фитнес)">💪 Фитнес</div>
+            <div class="vibe-chip" data-vibe="Готовлю за 5 минут">⚡ Быстро</div>
+            <div class="vibe-chip" data-vibe="Жду гостей">🎉 Гости</div>
+            <div class="vibe-chip" data-vibe="Сильное похмелье">🤕 Похмелье</div>
+          </div>
+
+          <button class="btn-primary" id="btn-main-action"><i class="fa-solid fa-camera"></i> Сделать фото</button>
         </div>
+
         <div id="panel-results" hidden>
-          <div class="detected-items" id="ingredients-list"></div>
-          <div class="recipes-grid" id="recipes-grid"></div>
+          <div id="results-content">
+             <div class="detected-items" id="ingredients-list"></div>
+             <div class="recipes-grid" id="recipes-grid"></div>
+          </div>
           <button class="btn-primary" id="btn-reset" style="margin-top:20px; background: var(--panel-bg); color: var(--text-primary); border: 1px solid var(--input-bg);">
-            <i class="fa-solid fa-rotate-left"></i> Начать заново
+            <i class="fa-solid fa-rotate-left"></i> Новое фото
           </button>
         </div>
       </section>
@@ -69,57 +77,43 @@
 
     <!-- 2. HISTORY VIEW -->
     <main class="app-view" id="view-history" style="padding: 20px;">
-      <h2 style="margin-bottom: 20px;">История</h2>
-      <div id="history-container" style="display:flex; flex-direction:column; gap:16px;">
-        <p style="color: var(--text-muted); text-align:center; margin-top:50px;">Здесь будут ваши прошлые рецепты</p>
-      </div>
+      <h2>История</h2>
+      <div id="history-list" style="margin-top: 20px;"></div>
     </main>
 
-    <!-- 3. PROFILE / SETTINGS VIEW -->
+    <!-- 3. PROFILE VIEW -->
     <main class="app-view" id="view-profile" style="padding: 20px;">
-      <h2 style="margin-bottom: 8px;">Личный кабинет</h2>
-      <p style="color: var(--text-muted); margin-bottom: 24px;">Настройте свои предпочтения</p>
-      
-      <div class="recipe-card" style="padding: 20px; background: var(--panel-bg);">
-         <h3>Вход в аккаунт</h3>
-         <div style="display:flex; flex-direction:column; gap:12px; margin-top:16px;">
-           <a href="/api/auth/google" class="btn-primary" style="background:#fff; color:#000;"><i class="fa-brands fa-google"></i> Google</a>
-           <a href="/api/auth/github" class="btn-primary" style="background:#333; color:#fff;"><i class="fa-brands fa-github"></i> GitHub</a>
-         </div>
+      <h2>Профиль</h2>
+      <div class="recipe-card" style="padding: 20px; margin-top: 20px;">
+        <p style="margin-bottom: 16px;">Войдите, чтобы сохранять свои настройки и историю</p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <a href="/api/auth/google" class="btn-primary" style="background:#fff; color:#000;"><i class="fa-brands fa-google"></i> Google</a>
+          <a href="/api/auth/github" class="btn-primary" style="background:#333; color:#fff;"><i class="fa-brands fa-github"></i> GitHub</a>
+        </div>
       </div>
     </main>
 
-    <!-- Bottom Navigation -->
     <nav class="app-nav">
-      <div class="nav-item active" data-view="home">
-        <i class="fa-solid fa-house"></i>
-        <span>Главная</span>
-      </div>
-      <div class="nav-item" data-view="history">
-        <i class="fa-solid fa-clock-rotate-left"></i>
-        <span>История</span>
-      </div>
-      <div class="nav-item" data-view="profile">
-        <i class="fa-solid fa-circle-user"></i>
-        <span>Профиль</span>
-      </div>
+      <div class="nav-item active" data-view="home"><i class="fa-solid fa-house"></i><span>Главная</span></div>
+      <div class="nav-item" data-view="history"><i class="fa-solid fa-clock-rotate-left"></i><span>История</span></div>
+      <div class="nav-item" data-view="profile"><i class="fa-solid fa-circle-user"></i><span>Профиль</span></div>
     </nav>
-
   </div>
 
-  <!-- Settings Modal (Allergens) -->
+  <!-- Settings Modal -->
   <div class="modal-backdrop" id="modal-settings" hidden>
-    <div class="floating-panel" style="margin-top:100px; height: auto; border-radius: var(--radius-lg);">
-      <h3>Предпочтения</h3>
-      <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:20px;">Укажите аллергии или продукты, которые вам не нравятся</p>
+    <div class="floating-panel" style="margin-top:120px; height: auto; border-radius: 24px;">
+      <h2 style="margin-bottom: 8px;">Настройки ИИ</h2>
+      <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:20px;">Это поможет Шефу лучше понимать ваши вкусы</p>
       
-      <div style="margin-bottom:20px;">
-        <label style="font-size:0.9rem; display:block; margin-bottom:8px;">Аллергии</label>
-        <input type="text" placeholder="Напр: молоко, арахис" style="width:100%; padding:12px; border-radius:var(--radius-sm); border:none; background:var(--input-bg); color:#fff;" />
-      </div>
+      <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:6px;">Аллергии (через запятую)</label>
+      <input type="text" id="prefs-allergens" class="pref-input" placeholder="Напр: молоко, арахис, глютен" />
       
-      <button class="btn-primary" id="btn-save-settings">Сохранить</button>
-      <button id="btn-close-settings" style="background:none; border:none; color:var(--text-muted); width:100%; margin-top:15px; cursor:pointer;">Закрыть</button>
+      <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:6px;">Не нравится / Исключить</label>
+      <input type="text" id="prefs-dislikes" class="pref-input" placeholder="Напр: кинза, лук, жирное" />
+      
+      <button class="btn-primary" id="btn-save-settings">Сохранить предпочтения</button>
+      <button id="btn-close-settings" style="background:none; border:none; color:var(--text-muted); width:100%; margin-top:15px; cursor:pointer;">Отмена</button>
     </div>
   </div>
 
