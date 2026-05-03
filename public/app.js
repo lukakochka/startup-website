@@ -1,89 +1,89 @@
 /**
- * Ai-Chef Full App Logic
- * Handlers for Navigation, Scanning, AI Analysis, and UI rendering
+ * Ai-Chef Production Logic (v2.0)
+ * Fixed Navigation, Persistent Scanner, and Proper View Switching
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Elements
-  const elements = {
+  // Elements Selection
+  const ui = {
+    views: document.querySelectorAll('.app-view'),
+    navItems: document.querySelectorAll('.nav-item'),
     fileInput: document.getElementById('file-input'),
     uploadZone: document.getElementById('upload-zone'),
     previewImg: document.getElementById('preview-img'),
-    uploadPreview: document.getElementById('upload-preview'),
     scannerOverlay: document.getElementById('scanner-overlay'),
-    btnTrigger: document.getElementById('btn-analyze-trigger'),
-    initialState: document.getElementById('initial-state'),
-    resultsView: document.getElementById('results-view'),
+    
+    panelInitial: document.getElementById('panel-initial'),
+    panelResults: document.getElementById('panel-results'),
+    
+    btnMain: document.getElementById('btn-main-action'),
+    btnReset: document.getElementById('btn-reset'),
+    btnOpenSettings: document.getElementById('btn-open-settings'),
+    btnCloseSettings: document.getElementById('btn-close-settings'),
+    btnSaveSettings: document.getElementById('btn-save-settings'),
+    
+    modalSettings: document.getElementById('modal-settings'),
+    
     ingredientsList: document.getElementById('ingredients-list'),
-    recipesGrid: document.getElementById('recipes-grid'),
-    authModal: document.getElementById('auth-modal'),
-    btnLoginTrigger: document.getElementById('btn-login-trigger'),
-    btnCloseModal: document.getElementById('btn-close-modal'),
-    navItems: {
-      home: document.getElementById('nav-home'),
-      history: document.getElementById('nav-history'),
-      profile: document.getElementById('nav-profile')
-    }
+    recipesGrid: document.getElementById('recipes-grid')
   };
 
-  // --- 1. Navigation Logic ---
-  function setActiveNav(activeKey) {
-    Object.keys(elements.navItems).forEach(key => {
-      if (elements.navItems[key]) {
-        elements.navItems[key].classList.toggle('active', key === activeKey);
-      }
+  // --- 1. SPA Navigation ---
+  ui.navItems.forEach(item => {
+    item.addEventListener('click', () => {
+      const targetView = item.getAttribute('data-view');
+      
+      // Update Nav UI
+      ui.navItems.forEach(nav => nav.classList.remove('active'));
+      item.classList.add('active');
+      
+      // Update Views
+      ui.views.forEach(view => {
+        view.classList.remove('active');
+        if (view.id === `view-${targetView}`) {
+          view.classList.add('active');
+        }
+      });
     });
-    
-    // In a real app, we'd switch views here
-    if (activeKey === 'history') {
-      alert('История ваших сканирований появится здесь после подключения БД');
-    } else if (activeKey === 'profile') {
-      elements.authModal.hidden = false;
-    }
-  }
-
-  elements.navItems.home?.addEventListener('click', () => setActiveNav('home'));
-  elements.navItems.history?.addEventListener('click', () => setActiveNav('history'));
-  elements.navItems.profile?.addEventListener('click', () => setActiveNav('profile'));
-
-  // --- 2. Auth Modal ---
-  elements.btnLoginTrigger?.addEventListener('click', () => {
-    elements.authModal.hidden = false;
   });
 
-  elements.btnCloseModal?.addEventListener('click', () => {
-    elements.authModal.hidden = true;
+  // --- 2. Settings Modal ---
+  ui.btnOpenSettings?.addEventListener('click', () => ui.modalSettings.hidden = false);
+  ui.btnCloseSettings?.addEventListener('click', () => ui.modalSettings.hidden = true);
+  ui.btnSaveSettings?.addEventListener('click', () => {
+    alert('Настройки сохранены!');
+    ui.modalSettings.hidden = true;
   });
 
-  // --- 3. Scanning & Upload ---
-  elements.btnTrigger?.addEventListener('click', () => {
-    // If we already have results, the button acts as "Reset"
-    if (!elements.resultsView.hidden) {
-      resetUI();
-      return;
-    }
-    elements.fileInput.click();
-  });
+  // --- 3. Analysis Logic ---
+  
+  // Trigger file selection
+  ui.uploadZone?.addEventListener('click', () => ui.fileInput.click());
+  ui.btnMain?.addEventListener('click', () => ui.fileInput.click());
 
-  elements.fileInput?.addEventListener('change', (e) => {
+  ui.fileInput?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
-        elements.previewImg.src = event.target.result;
-        elements.uploadPreview.hidden = false;
-        elements.scannerOverlay.hidden = false; // Start scan animation
-        handleImageAnalysis(file);
+        // Show photo clearly
+        ui.previewImg.src = event.target.result;
+        ui.previewImg.style.opacity = '1';
+        
+        // Start Analysis
+        startAIAnalysis(file);
       };
       reader.readAsDataURL(file);
     }
   });
 
-  async function handleImageAnalysis(file) {
-    // UI Feedback
-    elements.initialState.hidden = true;
-    elements.btnTrigger.disabled = true;
-    elements.btnTrigger.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Шеф думает...';
+  async function startAIAnalysis(file) {
+    // UI State: Analysis started
+    ui.scannerOverlay.hidden = false; // Scanner starts loop
+    ui.panelInitial.hidden = true;
+    ui.panelResults.hidden = true;
+    ui.btnMain.disabled = true;
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Шеф анализирует...';
 
     const formData = new FormData();
     formData.append('photo', file);
@@ -94,69 +94,65 @@ document.addEventListener('DOMContentLoaded', () => {
         body: formData
       });
 
-      if (!response.ok) throw new Error('Server error');
+      if (!response.ok) throw new Error('API Error');
       
       const data = await response.json();
-      console.log('AI Data received:', data);
-      displayResults(data);
+      renderRecipes(data);
     } catch (err) {
       console.error('Analysis failed:', err);
-      alert('Не удалось связаться с Шефом. Проверь интернет или токен.');
-      resetUI();
+      alert('Ошибка при связи с ИИ. Проверьте GITHUB_TOKEN на Render.');
+      resetApp();
     }
   }
 
-  function displayResults(data) {
-    // Stop animation and show results
-    elements.scannerOverlay.hidden = true;
-    elements.resultsView.hidden = false;
-    elements.btnTrigger.disabled = false;
-    elements.btnTrigger.innerHTML = '<i class="fa-solid fa-arrow-rotate-left"></i> Начать заново';
+  function renderRecipes(data) {
+    // UI State: Success
+    ui.scannerOverlay.hidden = true; // Stop scanner only now!
+    ui.panelResults.hidden = false;
+    ui.btnMain.disabled = false;
 
-    // Clear previous
-    elements.ingredientsList.innerHTML = '';
-    elements.recipesGrid.innerHTML = '';
-
-    // Render Ingredients (Chips)
-    const ingredients = data.ingredients || [];
-    ingredients.forEach(name => {
+    // Ingredients
+    ui.ingredientsList.innerHTML = '';
+    (data.ingredients || []).forEach(ing => {
       const chip = document.createElement('div');
       chip.className = 'chip';
-      chip.innerHTML = `<span class="status-dot"></span> ${name}`;
-      elements.ingredientsList.appendChild(chip);
+      chip.innerHTML = `<span class="status-dot"></span> ${ing}`;
+      ui.ingredientsList.appendChild(chip);
     });
 
-    // Render Recipes
+    // Recipes
+    ui.recipesGrid.innerHTML = '';
     const recipes = data.recipes || [];
     if (recipes.length === 0) {
-      elements.recipesGrid.innerHTML = '<p style="color:var(--text-muted); text-align:center; width:100%; margin-top:20px;">Ингредиенты не найдены. Попробуйте другое фото.</p>';
+      ui.recipesGrid.innerHTML = '<p style="text-align:center; color:var(--text-muted); padding:20px;">Рецепты не найдены. Попробуйте другое фото.</p>';
     }
 
     recipes.forEach(recipe => {
       const card = document.createElement('div');
       card.className = 'recipe-card';
-      // Use a random nice food image if none provided
-      const img = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=500';
+      const foodImg = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=500';
       
       card.innerHTML = `
-        <img src="${img}" class="recipe-img" />
+        <img src="${foodImg}" class="recipe-img" />
         <div class="recipe-content">
           <h3 class="recipe-title">${recipe.name}</h3>
-          <p class="recipe-meta">${recipe.time || '25 мин'} • ${recipe.difficulty || 'Средне'}</p>
-          <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 8px;">${recipe.description || ''}</p>
+          <p class="recipe-meta"><i class="fa-regular fa-clock"></i> ${recipe.time || '25 мин'} • ${recipe.difficulty || 'Средне'}</p>
         </div>
       `;
-      elements.recipesGrid.appendChild(card);
+      ui.recipesGrid.appendChild(card);
     });
   }
 
-  function resetUI() {
-    elements.initialState.hidden = false;
-    elements.resultsView.hidden = true;
-    elements.scannerOverlay.hidden = true;
-    elements.uploadPreview.hidden = true;
-    elements.btnTrigger.disabled = false;
-    elements.btnTrigger.innerHTML = '<i class="fa-solid fa-camera"></i> Сделать фото';
-    elements.fileInput.value = '';
+  ui.btnReset?.addEventListener('click', resetApp);
+
+  function resetApp() {
+    ui.panelInitial.hidden = false;
+    ui.panelResults.hidden = true;
+    ui.scannerOverlay.hidden = true;
+    ui.previewImg.style.opacity = '0.5';
+    ui.btnMain.disabled = false;
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Загрузить фото';
+    ui.fileInput.value = '';
+    ui.previewImg.src = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000';
   }
 });
