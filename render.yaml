@@ -8,7 +8,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: file:/opt/render/project/src/data/dev.db
+        value: file:./prisma/dev.db
       - key: JWT_SECRET
         generateValue: true
       - key: SESSION_SECRET
@@ -23,7 +23,3 @@ services:
         sync: false
       - key: GITHUB_CLIENT_SECRET
         sync: false
-    disk:
-      name: sqlite-data
-      mountPath: /opt/render/project/src/prisma
-      sizeGB: 1
