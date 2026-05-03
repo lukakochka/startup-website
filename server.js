@@ -13,12 +13,14 @@ import preferencesRoutes from './src/routes/preferences.routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
+const APP_URL = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+process.env.APP_URL = APP_URL; // inject for passport routes to use
 
 const app = express();
 
 // ─── Core middleware ──────────────────────────────────────────────────────────
 
-app.use(cors({ origin: process.env.APP_URL, credentials: true }));
+app.use(cors({ origin: APP_URL, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());

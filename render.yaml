@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: mavericks
+    env: node
+    buildCommand: npm install && npx prisma db push && node prisma/seed.js
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./dev.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GITHUB_CLIENT_ID
+        sync: false
+      - key: GITHUB_CLIENT_SECRET
+        sync: false
+    disk:
+      name: sqlite-data
+      mountPath: /opt/render/project/src/prisma
+      sizeGB: 1
