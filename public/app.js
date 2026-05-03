@@ -143,10 +143,13 @@ document.addEventListener('DOMContentLoaded', () => {
       ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Блюд не найдено.</p>';
     }
 
-    recipes.forEach(r => {
+    recipes.forEach((r, index) => {
       const card = document.createElement('div');
       card.className = 'recipe-card';
-      const img = `https://source.unsplash.com/featured/500x350/?food,${encodeURIComponent(r.imageSearchTerm || r.name)}&sig=${Math.random()}`;
+      
+      // Более точный поиск фото по названию блюда
+      const dishName = r.name || 'cooked dish';
+      const img = `https://source.unsplash.com/featured/500x350/?${encodeURIComponent(dishName)},dish&sig=${Date.now() + index}`;
       card.innerHTML = `
         <img src="${img}" class="recipe-img" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500'" />
         <div class="recipe-content">
