@@ -27,7 +27,13 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsSheet: document.getElementById('settings-sheet'),
     
     ingredientsList: document.getElementById('ingredients-list'),
-    recipesGrid: document.getElementById('recipes-grid')
+    recipesGrid: document.getElementById('recipes-grid'),
+    
+    // Recipe Detail
+    modalRecipe: document.getElementById('modal-recipe'),
+    recipeSheet: document.getElementById('recipe-sheet'),
+    recipeDetailContent: document.getElementById('recipe-detail-content'),
+    btnCloseRecipe: document.getElementById('btn-close-recipe')
   };
 
   let currentVibe = 'Обычный ужин';
@@ -139,18 +145,54 @@ document.addEventListener('DOMContentLoaded', () => {
     recipes.forEach(r => {
       const card = document.createElement('div');
       card.className = 'recipe-card';
+      card.style.cursor = 'pointer';
       const img = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500';
       card.innerHTML = `
         <img src="${img}" class="recipe-img" />
         <div class="recipe-content">
           <h3 class="recipe-title">${r.name}</h3>
           <p class="recipe-meta"><i class="fa-solid fa-clock"></i> ${r.time || '20м'} • ${r.difficulty || 'Легко'}</p>
-          <p style="font-size:0.85rem; color:var(--text-muted); margin-top:8px;">${r.description || ''}</p>
         </div>
       `;
+      
+      // Open Details on Click
+      card.addEventListener('click', () => showRecipeDetails(r));
       ui.recipesGrid.appendChild(card);
     });
   }
+
+  function showRecipeDetails(r) {
+    const kbju = r.kbju || {k:0, b:0, j:0, u:0};
+    const stepsHtml = (r.steps || []).map((step, i) => `
+      <div style="display:flex; gap:12px; margin-bottom:12px;">
+        <span style="background:var(--accent-green); color:#fff; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.8rem; font-weight:700;">${i+1}</span>
+        <p style="font-size:0.9rem; line-height:1.4;">${step}</p>
+      </div>
+    `).join('');
+
+    ui.recipeDetailContent.innerHTML = `
+      <h2 style="color:var(--accent-green); margin-bottom:12px;">${r.name}</h2>
+      <div style="background:var(--bg-secondary); padding:16px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; margin-bottom:20px;">
+        <div style="text-align:center;"><b style="display:block; color:var(--accent-green);">${kbju.k}</b><small>ккал</small></div>
+        <div style="text-align:center;"><b style="display:block;">${kbju.b}г</b><small>белки</small></div>
+        <div style="text-align:center;"><b style="display:block;">${kbju.j}г</b><small>жиры</small></div>
+        <div style="text-align:center;"><b style="display:block;">${kbju.u}г</b><small>углев</small></div>
+      </div>
+      <p style="background:#E8F5E9; color:#2E7D32; padding:12px; border-radius:12px; font-size:0.85rem; margin-bottom:20px; border-left:4px solid var(--accent-green);">
+        <i class="fa-solid fa-circle-info"></i> ${r.bestTime || 'Подходит для сбалансированного питания.'}
+      </p>
+      <h3 style="margin-bottom:12px; font-size:1.1rem;">Как готовить:</h3>
+      <div class="steps-list">${stepsHtml}</div>
+    `;
+
+    ui.modalRecipe.hidden = false;
+    setTimeout(() => ui.recipeSheet.classList.add('active'), 10);
+  }
+
+  ui.btnCloseRecipe?.addEventListener('click', () => {
+    ui.recipeSheet.classList.remove('active');
+    setTimeout(() => ui.modalRecipe.hidden = true, 400);
+  });
 
   ui.btnReset?.addEventListener('click', resetApp);
 
