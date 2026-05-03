@@ -134,9 +134,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Recipes
     ui.recipesGrid.innerHTML = '';
-    const recipes = data.recipes || [];
+    // Try to find recipes in different possible fields
+    const recipes = data.recipes || data.dishes || data.ideas || data.suggestions || [];
+    
+    console.log('Found recipes:', recipes);
+
     if (recipes.length === 0) {
-      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">ИИ не нашел подходящих рецептов. Попробуйте другой вайб!</p>';
+      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">ИИ распознал продукты, но не смог придумать блюда. Попробуйте сменить вайб!</p>';
     }
 
     recipes.forEach(r => {

@@ -14,8 +14,27 @@
     .app-view.active { display: flex; }
     
     /* Vibe Selector Styles */
-    .vibe-row { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0; margin-bottom: 20px; -ms-overflow-style: none; scrollbar-width: none; }
-    .vibe-row::-webkit-scrollbar { display: none; }
+    .vibe-row { 
+      display: flex; 
+      gap: 10px; 
+      overflow-x: auto; 
+      padding: 15px 5px; 
+      margin-bottom: 20px; 
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent-neon) var(--input-bg);
+    }
+    .vibe-row::-webkit-scrollbar { 
+      height: 4px; 
+      display: block; 
+    }
+    .vibe-row::-webkit-scrollbar-thumb {
+      background: var(--accent-neon);
+      border-radius: 10px;
+    }
+    .vibe-row::-webkit-scrollbar-track {
+      background: var(--panel-bg);
+    }
     .vibe-chip { 
       white-space: nowrap; padding: 8px 16px; background: var(--input-bg); border-radius: 100px; 
       font-size: 0.85rem; cursor: pointer; transition: 0.2s; border: 1px solid transparent;
