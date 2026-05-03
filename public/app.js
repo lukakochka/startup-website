@@ -55,13 +55,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Settings
-  ui.btnOpenSettings?.addEventListener('click', () => ui.modalSettings.hidden = false);
-  ui.btnCloseSettings?.addEventListener('click', () => ui.modalSettings.hidden = true);
-  ui.btnSaveSettings?.addEventListener('click', () => {
-    ui.modalSettings.hidden = true;
-    // Show a mini-notification instead of alert
-    console.log('Preferences saved locally');
+  // Settings Toggle
+  ui.btnOpenSettings?.addEventListener('click', () => {
+    ui.modalSettings.hidden = false;
+    setTimeout(() => document.getElementById('settings-sheet').classList.add('active'), 10);
+  });
+  
+  const closeSettings = () => {
+    document.getElementById('settings-sheet').classList.remove('active');
+    setTimeout(() => ui.modalSettings.hidden = true, 400);
+  };
+
+  ui.btnCloseSettings?.addEventListener('click', closeSettings);
+  ui.btnSaveSettings?.addEventListener('click', closeSettings);
+  ui.modalSettings?.addEventListener('click', (e) => {
+    if (e.target === ui.modalSettings) closeSettings();
   });
 
   // --- 2. Image Handling ---
@@ -172,3 +180,21 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.previewImg.src = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=1000';
   }
 });
+
+  <!-- Settings Bottom Sheet -->
+  <div class="modal-backdrop" id="modal-settings" hidden>
+    <div class="bottom-sheet" id="settings-sheet">
+      <div class="sheet-handle"></div>
+      <h2 style="margin-bottom: 8px;">Настройки ИИ</h2>
+      <p style="color:var(--text-muted); font-size:0.8rem; margin-bottom:24px;">Ваши предпочтения для Шефа</p>
+      
+      <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:6px;">Аллергии (через запятую)</label>
+      <input type="text" id="prefs-allergens" class="pref-input" placeholder="Напр: молоко, арахис" />
+      
+      <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:6px;">Исключить продукты</label>
+      <input type="text" id="prefs-dislikes" class="pref-input" placeholder="Напр: кинза, лук" />
+      
+      <button class="btn-primary" id="btn-save-settings">Сохранить</button>
+      <button id="btn-close-settings" style="background:none; border:none; color:var(--text-muted); width:100%; margin-top:20px; cursor:pointer;">Закрыть</button>
+    </div>
+  </div>
