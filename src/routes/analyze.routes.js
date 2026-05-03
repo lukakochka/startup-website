@@ -86,43 +86,69 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
         await prisma.userInventory.upsert({
           where: { userId_ingredientName: { userId, ingredientName: name } },
           update: { lastSeenAt: now },
-          create: { userId, ingredientName: name, firstSeenAt: now, lastSeenAt: now }
+    try {
+      const aiResponse = await analyzeRefrigeratorPhoto(req.file.path, systemPrompt, {
+        allergens: finalAllergens,
+        dislikes: finalDislikes,
+        vibe,
+        expiring
+      });
+
+      // 5. Update Inventory (if logged in)
+      if (userId && aiResponse.ingredients && Array.isArray(aiResponse.ingredients)) {
+        const now = new Date();
+        // Execute sequentially to avoid SQLite locking issues with multiple concurrent queries
+        for (const ingredient of aiResponse.ingredients) {
+          const name = ingredient.toLowerCase().trim();
+          await prisma.userInventory.upsert({
+            where: { userId_ingredientName: { userId, ingredientName: name } },
+            update: { lastSeenAt: now },
+            create: { userId, ingredientName: name, firstSeenAt: now, lastSeenAt: now }
+          });
+        }
+        
+        // Update User metrics
+        await prisma.user.update({
+          where: { id: userId },
+          data: { 
+            lastIp: clientIp, 
+            userAgent: clientAgent,
+            totalScans: { increment: 1 }
+          }
         });
       }
+
+      // 6. Save History Record (Max Data)
+      const dbPhotoPath = req.file.path.split(path.sep).join('/').replace(/.*\/public\//, '');
       
-      // Update User metrics
-      await prisma.user.update({
-        where: { id: userId },
-        data: { 
-          lastIp: clientIp, 
-          userAgent: clientAgent,
-          totalScans: { increment: 1 }
-        }
+      await prisma.recipeHistory.create({
+        data: {
+          userId,
+          photoPath: dbPhotoPath,
+          photoStatus: 'stored',
+          vibe,
+          aiResponse: JSON.stringify(aiResponse),
+          ingredients: (aiResponse.ingredients || []).join(', '),
+          allergens: JSON.stringify(finalAllergens),
+          dislikes: JSON.stringify(finalDislikes),
+          clientIp,
+          clientAgent
+        },
+      });
+
+      return res.json(aiResponse);
+
+    } catch (aiErr) {
+      console.error('[AI ANALYZE FAIL]:', aiErr.message);
+      return res.status(500).json({ 
+        error: "Failed to analyze photo", 
+        details: aiErr.message,
+        tip: "Попробуйте еще раз через минуту или проверьте формат фото." 
       });
     }
-
-    // 6. Save History Record (Max Data)
-    const dbPhotoPath = req.file.path.split(path.sep).join('/').replace(/.*\/public\//, '');
-    
-    await prisma.recipeHistory.create({
-      data: {
-        userId,
-        photoPath: dbPhotoPath,
-        photoStatus: 'stored',
-        vibe,
-        aiResponse: JSON.stringify(aiResponse),
-        ingredients: (aiResponse.ingredients || []).join(', '),
-        allergens: JSON.stringify(finalAllergens),
-        dislikes: JSON.stringify(finalDislikes),
-        clientIp,
-        clientAgent
-      },
-    });
-
-    res.json(aiResponse);
   } catch (err) {
     console.error('Analyze error:', err);
-    res.status(500).json({ error: 'Failed to analyze photo' });
+    res.status(500).json({ error: 'Failed to process request' });
   }
 });
 
