@@ -4,7 +4,7 @@ import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const UPLOADS_DIR = path.resolve(__dirname, '../../uploads');
+export const UPLOADS_DIR = path.resolve(__dirname, '../../public/uploads');
 
 // Ensure uploads directory exists on startup
 fs.mkdirSync(UPLOADS_DIR, { recursive: true });

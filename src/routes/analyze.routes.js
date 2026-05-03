@@ -87,10 +87,12 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
     }
 
     // 6. Save History Record (Max Data)
+    const dbPhotoPath = req.file.path.split(path.sep).join('/').replace(/.*\/public\//, '');
+    
     await prisma.recipeHistory.create({
       data: {
         userId,
-        photoPath: req.file.path,
+        photoPath: dbPhotoPath,
         photoStatus: 'stored',
         vibe,
         aiResponse: JSON.stringify(aiResponse),
