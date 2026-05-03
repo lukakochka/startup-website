@@ -22,10 +22,14 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
   const clientAgent = req.headers['user-agent'] || 'Unknown';
 
   try {
-    // 1. Fetch system prompt
-    let promptTemplate = 'Ты — шеф-повар. Отвечай в JSON.';
-    const activePrompt = await prisma.systemPrompt.findFirst({ where: { isActive: true } });
-    if (activePrompt) promptTemplate = activePrompt.content;
+    // 1. Fetch system prompt (Safe version)
+    let promptTemplate = `Ты — шеф-повар Ai-Chef. Проанализируй фото и предложи рецепты в JSON.`;
+    try {
+      const activePrompt = await prisma.systemPrompt.findFirst({ where: { isActive: true } });
+      if (activePrompt) promptTemplate = activePrompt.content;
+    } catch (dbErr) {
+      console.warn('DB not ready, using fallback prompt');
+    }
 
     // 2. Resolve preferences (DB + Client inputs)
     let dbPrefs = null;
