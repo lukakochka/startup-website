@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String           @id @default(cuid())
+  email       String?          @unique
+  name        String?
+  avatar      String?
+  provider    String?          // "google" | "github" | "apple"
+  providerId  String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  history     RecipeHistory[]
+  preferences UserPreferences?
+}
+
+/// Stores per-user dietary restrictions used to filter AI recipe output
+model UserPreferences {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  allergens String   @default("[]") // JSON string: ["молоко","орехи"]
+  dislikes  String   @default("[]") // JSON string: ["кинза","печень"]
+  updatedAt DateTime @updatedAt
+}
+
+model RecipeHistory {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  photoPath   String?                         // path to saved image file
+  photoStatus String                           // "stored" | "discarded"
+  aiResponse  String                           // full JSON from GPT-4o
+  ingredients String?                          // comma-separated detected ingredients
+  allergens   String?                          // snapshot of user allergens at time of request
+  dislikes    String?                          // snapshot of user dislikes at time of request
+  createdAt   DateTime @default(now())
+}
+
+model PromptTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  content   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

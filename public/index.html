@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mavericks — Что приготовить?</title>
+  <meta name="description" content="Сфотографируй холодильник — Mavericks предложит рецепты с учётом твоих аллергий и вкусов." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__inner">
+      <a href="/" class="logo" aria-label="Mavericks — на главную">
+        <div class="logo__wave">🌊</div>
+        <span class="logo__text">Mavericks</span>
+      </a>
+
+      <nav class="header__nav" aria-label="Навигация">
+        <button class="btn btn--ghost btn--sm" id="btn-history" aria-label="Открыть историю">История</button>
+        <button class="btn btn--ghost btn--sm" id="btn-prefs" aria-label="Настройки предпочтений">
+          <span id="prefs-indicator" class="prefs-dot" hidden></span>
+          Предпочтения
+        </button>
+      </nav>
+
+      <div class="header__auth" id="auth-area" role="region" aria-label="Авторизация">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Main ────────────────────────────────────────────────────────── -->
+  <main class="main" id="main">
+
+    <!-- Hero -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__badge">AI-powered • Beta</div>
+      <h1 class="hero__title" id="hero-title">
+        Открой холодильник.<br />
+        <span class="gradient-text">Мы найдём рецепт.</span>
+      </h1>
+      <p class="hero__subtitle">
+        Mavericks анализирует продукты и подбирает рецепты —<br class="br-hide" />
+        с учётом твоих аллергий и вкусов
+      </p>
+
+      <!-- Active restrictions summary -->
+      <div class="active-prefs" id="active-prefs" hidden aria-live="polite"></div>
+    </section>
+
+    <!-- Upload -->
+    <section class="upload-section" aria-label="Загрузка фото">
+      <div class="upload-zone" id="upload-zone" role="button" tabindex="0" aria-label="Загрузить фото холодильника">
+        <input type="file" id="file-input" accept="image/*" hidden aria-label="Выбрать файл" />
+
+        <div id="upload-idle">
+          <div class="upload-zone__icon" aria-hidden="true">📷</div>
+          <p class="upload-zone__title">
+            Перетащи фото или <button class="link-btn" id="btn-browse">выбери файл</button>
+          </p>
+          <p class="upload-zone__hint">JPEG · PNG · WebP · до 10 МБ</p>
+        </div>
+
+        <div id="upload-preview" hidden>
+          <img id="preview-img" src="" alt="Превью содержимого холодильника" class="preview-img" />
+          <div class="preview-overlay">
+            <button class="btn btn--outline btn--sm" id="btn-change">Изменить фото</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn--primary btn--lg" id="btn-analyze" disabled aria-label="Запустить анализ фото">
+        <span class="btn__icon" aria-hidden="true">✨</span>
+        <span class="btn__text">Найти рецепты</span>
+        <span class="btn__spinner" hidden aria-hidden="true"></span>
+      </button>
+    </section>
+
+    <!-- Results -->
+    <section class="results-section" id="results-section" hidden aria-label="Результаты анализа" aria-live="polite">
+      <div class="results-header">
+        <h2 class="results-title">Найденные ингредиенты</h2>
+      </div>
+      <div class="ingredients-chip-list" id="ingredients-list" role="list" aria-label="Список ингредиентов"></div>
+
+      <div class="results-header" style="margin-top:12px">
+        <h2 class="results-title">Рецепты для тебя</h2>
+      </div>
+      <div class="recipes-grid" id="recipes-grid" role="list"></div>
+    </section>
+
+  </main>
+
+  <!-- ── History drawer ──────────────────────────────────────────────── -->
+  <aside class="drawer" id="history-drawer" aria-hidden="true" aria-label="История анализов">
+    <div class="drawer__header">
+      <h2 class="drawer__title">История</h2>
+      <button class="drawer__close" id="btn-close-history" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="drawer__body" id="history-list">
+      <p class="empty-state">История пуста</p>
+    </div>
+  </aside>
+
+  <!-- ── Preferences drawer ──────────────────────────────────────────── -->
+  <aside class="drawer" id="prefs-drawer" aria-hidden="true" aria-label="Настройки предпочтений">
+    <div class="drawer__header">
+      <h2 class="drawer__title">Предпочтения</h2>
+      <button class="drawer__close" id="btn-close-prefs" aria-label="Закрыть">✕</button>
+    </div>
+    <div class="drawer__body">
+
+      <!-- Allergens -->
+      <section class="pref-section" aria-labelledby="allergens-label">
+        <div class="pref-section__header">
+          <span class="pref-section__icon" aria-hidden="true">⚠️</span>
+          <div>
+            <h3 class="pref-section__title" id="allergens-label">Аллергены</h3>
+            <p class="pref-section__desc">Эти продукты будут ПОЛНОСТЬЮ исключены из рецептов</p>
+          </div>
+        </div>
+        <div class="chip-input-area">
+          <div class="chip-list" id="allergens-chips" role="list" aria-label="Список аллергенов"></div>
+          <div class="chip-input-row">
+            <input type="text" id="allergen-input" class="chip-input" placeholder="Напр: молоко, арахис, глютен…" aria-label="Добавить аллерген" />
+            <button class="btn btn--danger btn--sm" id="btn-add-allergen" aria-label="Добавить">+</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="pref-divider" role="separator"></div>
+
+      <!-- Dislikes -->
+      <section class="pref-section" aria-labelledby="dislikes-label">
+        <div class="pref-section__header">
+          <span class="pref-section__icon" aria-hidden="true">🚫</span>
+          <div>
+            <h3 class="pref-section__title" id="dislikes-label">Не нравится</h3>
+            <p class="pref-section__desc">ИИ постарается избежать этих продуктов</p>
+          </div>
+        </div>
+        <div class="chip-input-area">
+          <div class="chip-list" id="dislikes-chips" role="list" aria-label="Список нелюбимых продуктов"></div>
+          <div class="chip-input-row">
+            <input type="text" id="dislike-input" class="chip-input" placeholder="Напр: кинза, печень, оливки…" aria-label="Добавить продукт" />
+            <button class="btn btn--ghost btn--sm" id="btn-add-dislike" aria-label="Добавить">+</button>
+          </div>
+        </div>
+      </section>
+
+      <div class="pref-divider" role="separator"></div>
+
+      <button class="btn btn--primary" id="btn-save-prefs" style="width:100%">Сохранить</button>
+      <p class="pref-note" id="prefs-sync-note">Войди в аккаунт, чтобы сохранить предпочтения на сервере</p>
+
+    </div>
+  </aside>
+
+  <!-- ── Auth modal ───────────────────────────────────────────────────── -->
+  <div class="modal-backdrop" id="auth-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <button class="modal__close" id="btn-close-modal" aria-label="Закрыть">✕</button>
+      <div class="modal__logo" aria-hidden="true">🌊</div>
+      <h2 class="modal__title" id="modal-title">Войти в Mavericks</h2>
+      <p class="modal__subtitle">Сохраняй историю рецептов и персональные предпочтения</p>
+
+      <div class="oauth-buttons" role="group" aria-label="Способы входа">
+        <a class="oauth-btn oauth-btn--google" href="/api/auth/google" id="btn-google">
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          Войти через Google
+        </a>
+
+        <a class="oauth-btn oauth-btn--github" href="/api/auth/github" id="btn-github">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58v-2.03c-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.74.08-.73.08-.73 1.21.09 1.85 1.24 1.85 1.24 1.07 1.84 2.81 1.31 3.5 1 .1-.78.42-1.31.76-1.61-2.67-.3-5.47-1.33-5.47-5.93 0-1.31.47-2.38 1.24-3.22-.14-.3-.54-1.52.11-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 013.01-.4c1.02.005 2.05.138 3.01.4 2.29-1.55 3.3-1.23 3.3-1.23.65 1.66.25 2.88.12 3.18.77.84 1.24 1.91 1.24 3.22 0 4.61-2.81 5.63-5.48 5.92.43.37.81 1.1.81 2.22v3.29c0 .32.22.7.83.58A12.004 12.004 0 0024 12c0-6.63-5.37-12-12-12z"/>
+          </svg>
+          Войти через GitHub
+        </a>
+
+        <button class="oauth-btn oauth-btn--apple" disabled title="Скоро появится" aria-disabled="true">
+          <svg width="20" height="20" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true">
+            <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.4C46.7 790.7 0 663 0 541.8c0-207.8 143.5-317.7 284.7-317.7 75.5 0 138.3 49.7 185.8 49.7 45.3 0 116.5-52.2 201.7-52.2 32.8 0 134.2 3.2 203.2 87.7zM546.7 194.1c34.8-41.1 60.1-98.1 60.1-155.1 0-8.3-.6-16.7-2-24.4-56.5 2.1-123.3 37.5-163.9 85.1-31.7 36.5-62.1 93.5-62.1 151.4 0 9 1.4 18 2 21 3.4.6 8.8 1.3 14.2 1.3 50.4 0 113.8-33.5 151.7-79.3z"/>
+          </svg>
+          Войти через Apple
+          <span class="badge-soon">Скоро</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Mobile bottom nav ───────────────────────────────────────────────── -->
+  <nav class="bottom-nav" aria-label="Навигация">
+    <button class="bottom-nav__item active" id="bnav-home" aria-label="Главная">
+      <span class="bottom-nav__item__icon" aria-hidden="true">🏠</span>
+      <span>Главная</span>
+    </button>
+    <button class="bottom-nav__item" id="bnav-history" aria-label="История">
+      <span class="bottom-nav__item__icon" aria-hidden="true">🕐</span>
+      <span>История</span>
+    </button>
+    <button class="bottom-nav__item" id="bnav-prefs" aria-label="Предпочтения">
+      <span class="bottom-nav__item__icon" aria-hidden="true">⚙️</span>
+      <span>Настройки</span>
+    </button>
+    <button class="bottom-nav__item" id="bnav-profile" aria-label="Профиль">
+      <span class="bottom-nav__item__icon" aria-hidden="true">👤</span>
+      <span>Профиль</span>
+    </button>
+  </nav>
+
+  <div class="overlay" id="overlay" hidden aria-hidden="true"></div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
