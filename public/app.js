@@ -1,6 +1,6 @@
 /**
- * Ai-Chef Smart Logic (v3.7) - ROBUST PARSING & DEBUG
- * Goal: Never show "Nothing found" if AI replied.
+ * Ai-Chef Smart Logic (v3.8) - CLEAN ERRORS
+ * Goal: Clean UI without technical jargon.
  */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -90,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
   async function runAI(file) {
     ui.panelInitial.hidden = true;
     ui.btnMain.disabled = true;
-    ui.btnMain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Шеф придумывает...';
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Шеф думает...';
 
     const formData = new FormData();
     formData.append('photo', file);
@@ -103,12 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const response = await fetch('/api/analyze', { method: 'POST', body: formData });
       const data = await response.json();
-      console.log('AI Response Raw Data:', data);
+      if (data.error) throw new Error(data.error);
       renderApp(data);
     } catch (err) {
       console.error('AI Error:', err);
-      ui.recipesGrid.innerHTML = '<p style="color:red; text-align:center;">Ошибка связи с Шефом. Попробуйте еще раз.</p>';
+      ui.panelResults.hidden = false;
+      ui.recipesGrid.innerHTML = `
+        <div style="text-align:center; padding:40px 20px;">
+          <i class="fa-solid fa-circle-exclamation" style="font-size:3rem; color:#FFCDD2; margin-bottom:15px;"></i>
+          <h3 style="margin-bottom:10px;">Шеф взял перерыв</h3>
+          <p style="color:var(--text-muted); font-size:0.9rem;">Попробуйте загрузить другое фото или подождите минуту. Иногда Шефу нужно время.</p>
+        </div>
+      `;
       ui.scannerOverlay.hidden = true;
+      ui.uploadZone.classList.remove('analyzing-pulse');
       ui.btnMain.disabled = false;
     }
   }
@@ -118,9 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
     ui.uploadZone.classList.remove('analyzing-pulse');
     ui.panelResults.hidden = false;
     ui.btnMain.disabled = false;
-    ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Новое фото';
+    ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Еще фото';
 
-    // Render Ingredients
     ui.ingredientsList.innerHTML = '';
     (data.ingredients || []).forEach(name => {
       const chip = document.createElement('div');
@@ -129,51 +136,21 @@ document.addEventListener('DOMContentLoaded', () => {
       ui.ingredientsList.appendChild(chip);
     });
 
-    // ROBUST RECIPE FINDER
     ui.recipesGrid.innerHTML = '';
-    let recipes = [];
-    
-    // Try to find any array of objects that looks like recipes
-    if (Array.isArray(data.recipes)) recipes = data.recipes;
-    else if (Array.isArray(data.dishes)) recipes = data.dishes;
-    else if (Array.isArray(data.ideas)) recipes = data.ideas;
-    else if (Array.isArray(data.suggestions)) recipes = data.suggestions;
-    else {
-      // If nothing found, try to look for ANY property that is an array
-      for (const key in data) {
-        if (Array.isArray(data[key]) && data[key].length > 0 && typeof data[key][0] === 'object') {
-          recipes = data[key];
-          break;
-        }
-      }
-    }
+    let recipes = data.recipes || data.dishes || [];
     
     if (recipes.length === 0) {
-      ui.recipesGrid.innerHTML = `
-        <div style="text-align:center; padding:20px; color:var(--text-muted);">
-          <p>Шеф прислал ответ, но я не смог найти там рецепты. 🤔</p>
-          <details style="font-size:0.7rem; margin-top:10px; color:#aaa;">
-            <summary>Технические данные (для отладки)</summary>
-            <pre>${JSON.stringify(data, null, 2)}</pre>
-          </details>
-        </div>
-      `;
+      ui.recipesGrid.innerHTML = '<p style="text-align:center; padding:20px; color:var(--text-muted);">Блюд не найдено.</p>';
     }
 
     recipes.forEach(r => {
       const card = document.createElement('div');
       card.className = 'recipe-card';
-      card.style.cursor = 'pointer';
-      
-      // Dynamic image with cache busting
-      const searchTerm = r.imageSearchTerm || r.name;
-      const cacheBust = Math.floor(Math.random() * 1000);
-      const img = `https://source.unsplash.com/featured/500x350/?food,${encodeURIComponent(searchTerm)}&sig=${cacheBust}`;
-      
+      const img = `https://source.unsplash.com/featured/500x350/?food,${encodeURIComponent(r.imageSearchTerm || r.name)}&sig=${Math.random()}`;
       card.innerHTML = `
         <img src="${img}" class="recipe-img" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500'" />
         <div class="recipe-content">
-          <h3 class="recipe-title">${r.name || 'Блюдо'}</h3>
+          <h3 class="recipe-title">${r.name}</h3>
           <p class="recipe-meta"><i class="fa-solid fa-clock"></i> ${r.time || '25м'} • ${r.difficulty || 'Легко'}</p>
         </div>
       `;
@@ -183,12 +160,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function showRecipeDetails(r) {
-    const k = r.kbju?.k || r.kbju?.calories || Math.floor(Math.random()*150 + 200);
-    const b = r.kbju?.b || r.kbju?.protein || 15;
-    const j = r.kbju?.j || r.kbju?.fat || 10;
-    const u = r.kbju?.u || r.kbju?.carbs || 20;
-
-    const steps = r.steps || r.instructions || r.method || ["Шагов не найдено, но Шеф рекомендует просто всё смешать!"];
+    const kbju = r.kbju || { k: 300, b: 15, j: 10, u: 25 };
+    const steps = r.steps || ["Подготовьте продукты", "Смешайте", "Подавайте"];
     const stepsHtml = steps.map((step, i) => `
       <div style="display:flex; gap:12px; margin-bottom:12px;">
         <span style="background:var(--accent-green); color:#fff; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:0.8rem; font-weight:700;">${i+1}</span>
@@ -197,17 +170,17 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
 
     ui.recipeDetailContent.innerHTML = `
-      <h2 style="color:var(--accent-green); margin-bottom:12px;">${r.name || r.title}</h2>
-      <div style="background:var(--bg-secondary); padding:16px; border-radius:var(--radius-sm); display:flex; justify-content:space-between; margin-bottom:20px; border:1px solid #E0E7E0;">
-        <div style="text-align:center;"><b style="display:block; color:var(--accent-green); font-size:1.1rem;">${k}</b><small>ккал</small></div>
-        <div style="text-align:center;"><b style="display:block; font-size:1.1rem;">${b}г</b><small>белки</small></div>
-        <div style="text-align:center;"><b style="display:block; font-size:1.1rem;">${j}г</b><small>жиры</small></div>
-        <div style="text-align:center;"><b style="display:block; font-size:1.1rem;">${u}г</b><small>углев</small></div>
+      <h2 style="color:var(--accent-green); margin-bottom:15px;">${r.name}</h2>
+      <div style="background:var(--bg-secondary); padding:16px; border-radius:12px; display:flex; justify-content:space-between; margin-bottom:20px; border:1px solid #E0E7E0;">
+        <div style="text-align:center;"><b>${kbju.k}</b><br><small>ккал</small></div>
+        <div style="text-align:center;"><b>${kbju.b}г</b><br><small>белки</small></div>
+        <div style="text-align:center;"><b>${kbju.j}г</b><br><small>жиры</small></div>
+        <div style="text-align:center;"><b>${kbju.u}г</b><br><small>углев</small></div>
       </div>
-      <p style="background:#F1F8E9; color:#2E7D32; padding:12px; border-radius:12px; font-size:0.85rem; margin-bottom:20px; border-left:4px solid var(--accent-green);">
-        <i class="fa-solid fa-circle-info"></i> ${r.bestTime || 'Идеально для текущего вайба.'}
+      <p style="background:#F1F8E9; padding:12px; border-radius:12px; font-size:0.85rem; margin-bottom:20px; border-left:4px solid var(--accent-green);">
+        ${r.bestTime || ''}
       </p>
-      <h3 style="margin-bottom:12px;">Как приготовить:</h3>
+      <h3 style="margin-bottom:12px;">Инструкция:</h3>
       <div>${stepsHtml}</div>
     `;
     ui.modalRecipe.hidden = false;
@@ -230,9 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         data.items.forEach(item => {
           const card = document.createElement('div');
           card.className = 'recipe-card';
-          let photoUrl = item.photoPath ? item.photoPath.replace(/\\/g, '/') : '';
-          if (photoUrl && !photoUrl.startsWith('/')) photoUrl = '/' + photoUrl;
-          
+          const photoUrl = item.photoPath ? (item.photoPath.startsWith('/') ? item.photoPath : '/' + item.photoPath) : '';
           card.innerHTML = `
             <img src="${photoUrl}" style="width:100%; height:150px; object-fit:cover;" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=500'" />
             <div class="recipe-content">
@@ -251,16 +222,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch (err) { console.error(err); }
   }
 
-  ui.btnReset?.addEventListener('click', resetApp);
-
-  function resetApp() {
+  ui.btnReset?.addEventListener('click', () => {
     ui.panelInitial.hidden = false;
     ui.panelResults.hidden = true;
     ui.scannerOverlay.hidden = true;
     ui.previewImg.style.opacity = '0.5';
+    ui.previewImg.src = 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&q=80&w=1000';
     ui.btnMain.disabled = false;
     ui.btnMain.innerHTML = '<i class="fa-solid fa-camera"></i> Сделать фото';
     ui.fileInput.value = '';
     ui.uploadZone.classList.remove('analyzing-pulse');
-  }
+  });
 });
